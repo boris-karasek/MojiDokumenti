@@ -11,9 +11,6 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
-  transform: {
-    '^.+\\.tsx?$': ['ts-jest', { tsconfig: 'tsconfig.jest.json' }],
-  },
   moduleNameMapper: {
     '^react-native-quick-crypto$': '<rootDir>/__mocks__/quick-crypto.js',
     '^@craftzdog/react-native-buffer$': '<rootDir>/__mocks__/buffer.js',
