@@ -14,7 +14,7 @@ Detaljna arhitektura, bezbednosne invarijante i konvencije razvoja su u
 ## Trenutno stanje
 
 - ✅ Modul 1: struktura projekta + navigacija
-- ✅ Modul 2: crypto modul (AES-256-GCM) + 12 Jest testova + CryptoTestScreen
+- ✅ Modul 2: crypto modul (AES-256-GCM) + 12 Jest testova (logika) + CryptoTestScreen sa 6 on-device provera (native implementacija na uredjaju)
 - ✅ Modul 3: lokalna baza (`expo-sqlite`) + repository sloj + 8 Jest testova
 - ⏳ Modul 4: MRZ generator — sledeći
 

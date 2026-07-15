@@ -4,8 +4,8 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitReturns": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "types": ["jest", "node"]
   },
-  "include": ["App.tsx", "src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["src/**/__tests__/**"]
+  "include": ["App.tsx", "src/**/*.ts", "src/**/*.tsx"]
 }
