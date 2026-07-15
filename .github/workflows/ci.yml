@@ -1,0 +1,42 @@
+# .github/workflows/ci.yml
+#
+# GitHub Actions "workflow" — skup koraka koje GitHub AUTOMATSKI pokrene
+# na svojim serverima kad se desi neki događaj (ovde: push i pull request).
+# Cilj: nijedan modul ne može da se merge-uje ako polomi tipove ili testove.
+
+name: CI # ime koje se vidi u "Actions" tabu na GitHub-u
+
+# --- KADA se pokreće ---
+on:
+  push:
+    branches: [main] # kad nešto stigne na main (npr. posle merge-a)
+  pull_request: # i na SVAKI pull request (bilo koja grana → bilo koja grana)
+
+# --- ŠTA se pokreće ---
+jobs:
+  build-and-test: # ime posla (proizvoljno)
+    runs-on: ubuntu-latest # GitHub podiže svežu Linux mašinu za svaki run
+
+    steps:
+      # 1. Preuzmi kod iz repozitorijuma na tu mašinu
+      - name: Preuzmi kod
+        uses: actions/checkout@v4
+
+      # 2. Instaliraj Node.js (verzija 20 — LTS, kompatibilna sa Expo SDK 56)
+      - name: Podesi Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm # keširaj node_modules između run-ova → brže
+
+      # 3. Instaliraj zavisnosti tačno po package-lock.json (čist, reproducibilan)
+      - name: Instaliraj zavisnosti
+        run: npm ci
+
+      # 4. Tipska provera aplikacionog koda
+      - name: Provera tipova (tsc)
+        run: npx tsc --noEmit
+
+      # 5. Pokreni Jest testove (crypto logika)
+      - name: Testovi (jest)
+        run: npm test
