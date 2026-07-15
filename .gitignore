@@ -1,0 +1,43 @@
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# native
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+ios/
+android/
+
+# metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+
+# macOS / editor
+.DS_Store
+*.pem
+.vscode/
+.idea/
+
+# lokalni env i tajne (za kasnije module)
+.env
+.env.local
+.env*.local
+google-services.json
+GoogleService-Info.plist
+
+# Claude Code — lokalna, lična podešavanja (nisu za deljenje)
+.claude/settings.local.json
