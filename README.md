@@ -15,7 +15,8 @@ Detaljna arhitektura, bezbednosne invarijante i konvencije razvoja su u
 
 - ✅ Modul 1: struktura projekta + navigacija
 - ✅ Modul 2: crypto modul (AES-256-GCM) + 12 Jest testova + CryptoTestScreen
-- ⏳ Modul 3: lokalna baza (`expo-sqlite`) + repository sloj — u toku
+- ✅ Modul 3: lokalna baza (`expo-sqlite`) + repository sloj + 8 Jest testova
+- ⏳ Modul 4: MRZ generator — sledeći
 
 ## Tehnologije
 
@@ -54,15 +55,16 @@ App.tsx                          init master ključa + navigacija
 src/types.ts                     centralni model podataka (DocumentData, EncryptedString…)
 src/navigation.ts                RootStackParamList
 src/services/crypto.ts           master ključ (Keystore) + AES-256-GCM
-src/services/__tests__/          Jest testovi crypto logike
-src/screens/                     ekrani (Home, CryptoTest, …)
-__mocks__/                       Jest mape: quick-crypto → Node crypto, SecureStore → memorija
+src/services/database.ts         repository sloj: expo-sqlite + crypto, vraća samo DecryptedDocument
+src/services/__tests__/          Jest testovi crypto i database logike
+src/screens/                     ekrani (Home, CryptoTest, DatabaseTest, …)
+__mocks__/                       Jest mape: quick-crypto → Node crypto, SecureStore → memorija, expo-sqlite → in-memory
 ```
 
 ## Testiranje i provera tipova
 
 ```bash
-npm test              # Jest testovi crypto logike (bez uređaja)
+npm test              # Jest testovi crypto i database logike (bez uređaja)
 npx tsc --noEmit       # tipska provera app koda
 npx expo-doctor        # provera konfiguracije projekta
 ```
@@ -76,10 +78,25 @@ ključa, GCM tamper detekcija). **Native implementaciju na uređaju** verifikuje
 
 1. Prvi start → generisanje master ključa.
 2. Home → **Crypto testovi** → svih 6 zeleno.
-3. Ubij app i pokreni ponovo → opet zeleno (ključ preživeo restart).
+3. Prekini proces app i pokreni ponovo → opet zeleno (ključ preživeo restart).
 
 Ovo su dva komplementarna sloja evaluacije koji zajedno dokazuju ispravnost
 enkripcije.
+
+`src/services/database.ts` je jedino mesto koje zna za SQL i za `encrypted`
+kolonu — enkripcija/dekripcija se dešava isključivo tu, ostatak app-a vidi
+samo `DocumentData`/`DecryptedDocument`. Jest testovi (mock baze u
+`__mocks__/expo-sqlite.js`) pokrivaju save→get roundtrip, sortiranje po
+datumu, brisanje, i da red u bazi zaista sadrži `v1:iv:ct:tag` šifrat a ne
+plaintext. **Native implementaciju i perzistenciju na uređaju** verifikuje
+`DatabaseTestScreen` (privremen, briše se u modulu 7):
+
+1. Home → **Lokalna baza** → **Sačuvaj test dokument** (par puta) → **Izlistaj
+   sve** → provera da su svi tu, sortirani od najnovijeg.
+2. **Obriši sve** → **Izlistaj sve** → baza prazna.
+3. Sačuvaj par test dokumenata, **prekini proces app i pokreni ponovo**, otvori ekran i
+   pritisni SAMO **Učitaj postojeće** (bez Save-a) → dokumenti se i dalje
+   pojavljuju → baza je perzistentna preko restarta.
 
 ## Bezbednosne invarijante
 

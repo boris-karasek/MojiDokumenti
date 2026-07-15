@@ -16,7 +16,7 @@ interface ModuleEntry {
 
 const MODULES: ModuleEntry[] = [
   { title: '🔐 Crypto testovi (modul 2)', route: 'CryptoTest', ready: true },
-  { title: '🗄️ Lokalna baza (modul 3)', route: null, ready: false },
+  { title: '🗄️ Lokalna baza (modul 3)', route: 'DatabaseTest', ready: true },
   { title: '🧬 MRZ generator (modul 4)', route: null, ready: false },
   { title: '📷 MRZ skeniranje (modul 5)', route: null, ready: false },
 ];

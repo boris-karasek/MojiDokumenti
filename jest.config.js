@@ -18,5 +18,6 @@ module.exports = {
     '^react-native-quick-crypto$': '<rootDir>/__mocks__/quick-crypto.js',
     '^@craftzdog/react-native-buffer$': '<rootDir>/__mocks__/buffer.js',
     '^expo-secure-store$': '<rootDir>/__mocks__/expo-secure-store.js',
+    '^expo-sqlite$': '<rootDir>/__mocks__/expo-sqlite.js',
   },
 };

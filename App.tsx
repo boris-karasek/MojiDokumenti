@@ -16,6 +16,7 @@ import { getOrCreateMasterKey } from './src/services/crypto';
 import type { RootStackParamList } from './src/navigation';
 import HomeScreen from './src/screens/HomeScreen';
 import CryptoTestScreen from './src/screens/CryptoTestScreen';
+import DatabaseTestScreen from './src/screens/DatabaseTestScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -57,6 +58,11 @@ export default function App() {
           name="CryptoTest"
           component={CryptoTestScreen}
           options={{ title: 'Crypto testovi' }}
+        />
+        <Stack.Screen
+          name="DatabaseTest"
+          component={DatabaseTestScreen}
+          options={{ title: 'Baza — test' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

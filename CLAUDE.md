@@ -16,8 +16,9 @@ komentarima, jer kod ulazi u tekst rada.
 
 - ✅ Modul 1: struktura projekta + navigacija
 - ✅ Modul 2: crypto modul + 12 Jest testova + CryptoTestScreen (verifikacija na uređaju)
-- ⏳ **SLEDEĆI — Modul 3: lokalna baza (expo-sqlite) + repository sloj**
-- Zatim: 4. MRZ generator → 5. MRZ skeniranje → 6. manuelni unos → 7. lista/detalji
+- ✅ Modul 3: lokalna baza (expo-sqlite) + repository sloj (`src/services/database.ts`) + 8 Jest testova
+- ⏳ **SLEDEĆI — Modul 4: MRZ generator**
+- Zatim: 5. MRZ skeniranje → 6. manuelni unos → 7. lista/detalji
   → 8. lokalne notifikacije → 9. Firebase Auth + Firestore sync → 10. QR prenos
   ključa → 11. biometrija 
 
@@ -79,15 +80,16 @@ App.tsx                          init ključa + navigacija
 src/types.ts                     CENTRALNI model — svaka izmena modela kreće odavde
 src/navigation.ts                RootStackParamList — nov ekran se registruje tu
 src/services/crypto.ts           ključ + AES-GCM (NE menjati bez dogovora s autorom)
+src/services/database.ts         repository sloj (expo-sqlite + crypto) — vraća samo DecryptedDocument
 src/services/__tests__/          Jest testovi
-src/screens/                     ekrani
-__mocks__/                       Jest mape: quick-crypto→Node crypto, SecureStore→memorija
+src/screens/                     ekrani (uključujući privremene *TestScreen za verifikaciju na uređaju)
+__mocks__/                       Jest mape: quick-crypto→Node crypto, SecureStore→memorija, expo-sqlite→in-memory
 ```
 
 ## Komande
 
 ```bash
-npm test              # 12 Jest testova (crypto logika, bez uređaja)
+npm test              # 20 Jest testova (crypto + database logika, bez uređaja)
 npx tsc --noEmit      # tipska provera app koda (testove proverava ts-jest)
 npx expo-doctor       # provera konfiguracije
 npx expo start --dev-client --tunnel    # razvoj na instaliranom dev buildu
@@ -119,6 +121,10 @@ stižu preko Metro-a.
 - `react-native-quick-crypto` kopira Node `crypto` API → zato Jest testovi
   rade na laptopu preko `moduleNameMapper`. Unit testovi dokazuju LOGIKU;
   native implementaciju dokazuje CryptoTestScreen na uređaju. Oba sloja ostaju.
+- Isti princip za `expo-sqlite`: Jest testovi rade na mock bazi
+  (`__mocks__/expo-sqlite.js`, in-memory), native implementaciju i
+  PERZISTENCIJU PREKO RESTARTA dokazuje DatabaseTestScreen na uređaju
+  (dugme "Učitaj postojeće" bez prethodnog Save-a nakon restarta app-a).
 - `npx expo start --tunnel` ako QR/Metro ne radi preko lokalne mreže.
 
 ## Model podataka
