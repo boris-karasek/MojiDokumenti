@@ -17,8 +17,11 @@ komentarima, jer kod ulazi u tekst rada.
 - ✅ Modul 1: struktura projekta + navigacija
 - ✅ Modul 2: crypto modul + 12 Jest testova + CryptoTestScreen (verifikacija na uređaju)
 - ✅ Modul 3: lokalna baza (expo-sqlite) + repository sloj (`src/services/database.ts`) + 8 Jest testova
-- ⏳ **SLEDEĆI — Modul 4: MRZ generator**
-- Zatim: 5. MRZ skeniranje → 6. manuelni unos → 7. lista/detalji
+- ✅ Modul 4: MRZ generator (`tools/mrz-generator/`, samostalan CLI alat izvan mobilne app) —
+  ICAO 9303 check-digit (7-3-1), TD3 + TD1, samoverifikacija preko paketa `mrz`,
+  `--corrupt` za namerno oštećene varijante, vitest testovi
+- ⏳ **SLEDEĆI — Modul 5: MRZ skeniranje (kamera + OCR)**
+- Zatim: 6. manuelni unos → 7. lista/detalji
   → 8. lokalne notifikacije → 9. Firebase Auth + Firestore sync → 10. QR prenos
   ključa → 11. biometrija 
 

@@ -16,7 +16,11 @@ Detaljna arhitektura, bezbednosne invarijante i konvencije razvoja su u
 - ✅ Modul 1: struktura projekta + navigacija
 - ✅ Modul 2: crypto modul (AES-256-GCM) + 12 Jest testova (logika) + CryptoTestScreen sa 6 on-device provera (native implementacija na uredjaju)
 - ✅ Modul 3: lokalna baza (`expo-sqlite`) + repository sloj + 8 Jest testova
-- ⏳ Modul 4: MRZ generator — sledeći
+- ✅ Modul 4: MRZ generator (`tools/mrz-generator/`, samostalan CLI alat, van mobilne app) —
+  ICAO 9303 check-digit (7-3-1), TD3 + TD1, samoverifikacija preko paketa `mrz`,
+  `--corrupt` za namerno oštećene varijante, `--expiry` za kontrolu roka isteka
+  (valid/soon/expired), vitest testovi
+- ⏳ Modul 5: MRZ skeniranje (kamera + OCR) — sledeći
 
 ## Tehnologije
 
@@ -59,7 +63,28 @@ src/services/database.ts         repository sloj: expo-sqlite + crypto, vraća s
 src/services/__tests__/          Jest testovi crypto i database logike
 src/screens/                     ekrani (Home, CryptoTest, DatabaseTest, …)
 __mocks__/                       Jest mape: quick-crypto → Node crypto, SecureStore → memorija, expo-sqlite → in-memory
+tools/mrz-generator/             razvojni CLI alat — generator sintetičkih MRZ zapisa (v. ispod), NIJE deo mobilne app
 ```
+
+## Razvojni alati — MRZ generator
+
+[`tools/mrz-generator/`](./tools/mrz-generator/) je samostalan Node.js/TypeScript
+CLI alat (sopstveni `package.json`, van mobilne app) koji generiše sintetičke
+(izmišljene) MRZ zapise za testiranje OCR/parsing pipeline-a i za evaluaciju u
+radu:
+
+- **TD3** (pasoš, 2×44) i **TD1** (lična karta, 3×30), sa ICAO 9303
+  check-digitom (težine 7-3-1) i samoverifikacijom preko paketa `mrz`
+  (svaki zapis mora vratiti `valid: true`).
+- `--corrupt=<n>` — namerno oštećene (nevalidne) varijante za evaluaciju
+  robusnosti OCR-a.
+- `--expiry=<spec>` — kontrola datuma isteka: `valid` (2-9 godina, podrazumevano),
+  `soon` (7-30 dana, testiranje praga notifikacija) ili `expired` (istekao pre
+  1-60 dana); podržana i eksplicitna raspodela po broju zapisa
+  (npr. `valid:15,soon:3,expired:2`).
+
+Detalji (algoritam, layout polja, svi primeri) su u
+[tools/mrz-generator/README.md](./tools/mrz-generator/README.md).
 
 ## Testiranje i provera tipova
 

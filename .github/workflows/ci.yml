@@ -40,3 +40,18 @@ jobs:
       # 5. Pokreni Jest testove (crypto logika)
       - name: Testovi (jest)
         run: npm test
+
+        # 6. Instaliraj zavisnosti generatora (zaseban pod-projekat, koristi Vitest)
+      - name: Instaliraj zavisnosti (mrz-generator)
+        run: npm ci
+        working-directory: tools/mrz-generator
+
+      # 7. Provera tipova generatora
+      - name: Provera tipova (mrz-generator)
+        run: npm run typecheck
+        working-directory: tools/mrz-generator
+
+      # 8. Testovi generatora (Vitest)
+      - name: Testovi (mrz-generator)
+        run: npm test
+        working-directory: tools/mrz-generator
