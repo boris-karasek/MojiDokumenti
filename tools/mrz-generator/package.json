@@ -1,0 +1,21 @@
+{
+  "name": "mrz-generator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Razvojni CLI alat za generisanje sintetičkih (izmišljenih) MRZ zapisa za testiranje OCR/MRZ parsing pipeline-a. Nije deo mobilne aplikacije.",
+  "scripts": {
+    "generate": "tsx src/cli.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "mrz": "^5.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "tsx": "^4.23.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
+  }
+}
