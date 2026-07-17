@@ -11,8 +11,8 @@ export type RootStackParamList = {
   Home: undefined;
   CryptoTest: undefined;
   DatabaseTest: undefined;
+  ScanDocument: undefined;
   // Budući moduli se dodaju ovde, npr:
-  // ScanDocument: undefined;
   // DocumentDetails: { documentId: string };
 };
 

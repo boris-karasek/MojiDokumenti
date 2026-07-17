@@ -17,6 +17,7 @@ import type { RootStackParamList } from './src/navigation';
 import HomeScreen from './src/screens/HomeScreen';
 import CryptoTestScreen from './src/screens/CryptoTestScreen';
 import DatabaseTestScreen from './src/screens/DatabaseTestScreen';
+import ScanScreen from './src/screens/ScanScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -63,6 +64,11 @@ export default function App() {
           name="DatabaseTest"
           component={DatabaseTestScreen}
           options={{ title: 'Baza — test' }}
+        />
+        <Stack.Screen
+          name="ScanDocument"
+          component={ScanScreen}
+          options={{ title: 'Skeniranje MRZ-a', headerShown: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>
