@@ -20,7 +20,10 @@ Detaljna arhitektura, bezbednosne invarijante i konvencije razvoja su u
   ICAO 9303 check-digit (7-3-1), TD3 + TD1, samoverifikacija preko paketa `mrz`,
   `--corrupt` za namerno oštećene varijante, `--expiry` za kontrolu roka isteka
   (valid/soon/expired), vitest testovi
-- ⏳ Modul 5: MRZ skeniranje (kamera + OCR) — sledeći
+- 🔄 Modul 5 (u toku): MRZ skeniranje (kamera + OCR) — normalizacioni sloj
+  gotov (`src/services/mrzNormalizer.ts`, čisti OCR K→< greške i dužinu
+  linije pre `mrz` parsiranja, 12 Jest testova); sledeće je `expo-camera` +
+  ML Kit OCR ekran
 
 ## Tehnologije
 
@@ -60,7 +63,8 @@ src/types.ts                     centralni model podataka (DocumentData, Encrypt
 src/navigation.ts                RootStackParamList
 src/services/crypto.ts           master ključ (Keystore) + AES-256-GCM
 src/services/database.ts         repository sloj: expo-sqlite + crypto, vraća samo DecryptedDocument
-src/services/__tests__/          Jest testovi crypto i database logike
+src/services/mrzNormalizer.ts    čisti sirov OCR izlaz (K→<, dužina linije) pre mrz parsiranja — bez native zavisnosti
+src/services/__tests__/          Jest testovi crypto, database i MRZ normalizacije
 src/screens/                     ekrani (Home, CryptoTest, DatabaseTest, …)
 __mocks__/                       Jest mape: quick-crypto → Node crypto, SecureStore → memorija, expo-sqlite → in-memory
 tools/mrz-generator/             razvojni CLI alat — generator sintetičkih MRZ zapisa (v. ispod), NIJE deo mobilne app
@@ -89,7 +93,7 @@ Detalji (algoritam, layout polja, svi primeri) su u
 ## Testiranje i provera tipova
 
 ```bash
-npm test              # Jest testovi crypto i database logike (bez uređaja)
+npm test              # 32 Jest testa: crypto, database i MRZ normalizacija (bez uređaja)
 npx tsc --noEmit       # tipska provera app koda
 npx expo-doctor        # provera konfiguracije projekta
 ```
@@ -122,6 +126,18 @@ plaintext. **Native implementaciju i perzistenciju na uređaju** verifikuje
 3. Sačuvaj par test dokumenata, **prekini proces app i pokreni ponovo**, otvori ekran i
    pritisni SAMO **Učitaj postojeće** (bez Save-a) → dokumenti se i dalje
    pojavljuju → baza je perzistentna preko restarta.
+
+`src/services/mrzNormalizer.ts` čisti sirov OCR izlaz pre `mrz` paketa — bez
+native zavisnosti, pa je u potpunosti testabilan na laptopu (nema poseban
+*TestScreen sloj kao crypto/baza). Jest testovi (`mrzNormalizer.test.ts`)
+dokazuju:
+
+- filler nizove pogrešno pročitane kao `K` (npr. `"BORIS<KK<K<"`,
+  `"BORISKKKKKK"`),
+- da prava imena sa `K` (npr. "MARKO", "KATARINA") ostaju netaknuta,
+- normalizaciju dužine linije (TD1=30, TD3=44) i kraćenjem i dopunjavanjem,
+- dva potpuno "prljava" TD3/TD1 primera koji posle normalizacije prolaze kroz
+  pravi `mrz` paket sa `valid: true` (end-to-end dokaz, ne samo unit nivo).
 
 ## Bezbednosne invarijante
 

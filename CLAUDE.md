@@ -9,7 +9,7 @@ podaci se **enkriptuju na uređaju** i čuvaju; app podseća pred istek dokument
 Čuvaju se **samo strukturirani podaci, nikad slike dokumenata**.
 
 Srž rada je **kriptografija i zero-knowledge arhitektura** — sve odluke se mere
-prema tome. Rok: 2-3 meseca. Autor je student; objasni netrivijalne odluke u
+prema tome. Autor je student; objasni netrivijalne odluke u
 komentarima, jer kod ulazi u tekst rada.
 
 ## Trenutno stanje (ažuriraj posle svakog modula!)
@@ -20,7 +20,11 @@ komentarima, jer kod ulazi u tekst rada.
 - ✅ Modul 4: MRZ generator (`tools/mrz-generator/`, samostalan CLI alat izvan mobilne app) —
   ICAO 9303 check-digit (7-3-1), TD3 + TD1, samoverifikacija preko paketa `mrz`,
   `--corrupt` za namerno oštećene varijante, vitest testovi
-- ⏳ **SLEDEĆI — Modul 5: MRZ skeniranje (kamera + OCR)**
+- 🔄 **Modul 5 (u toku) — MRZ skeniranje (kamera + OCR)**:
+  normalizacioni sloj gotov (`src/services/mrzNormalizer.ts` — čisti OCR K→<
+  greške i dužinu linije pre `mrz` parsiranja, 12 Jest testova uključujući
+  end-to-end TD1+TD3 preko pravog `mrz` paketa); **sledeće**: `expo-camera` +
+  ML Kit OCR ekran koji sirov tekst šalje kroz normalizator
 - Zatim: 6. manuelni unos → 7. lista/detalji
   → 8. lokalne notifikacije → 9. Firebase Auth + Firestore sync → 10. QR prenos
   ključa → 11. biometrija 
@@ -84,6 +88,7 @@ src/types.ts                     CENTRALNI model — svaka izmena modela kreće 
 src/navigation.ts                RootStackParamList — nov ekran se registruje tu
 src/services/crypto.ts           ključ + AES-GCM (NE menjati bez dogovora s autorom)
 src/services/database.ts         repository sloj (expo-sqlite + crypto) — vraća samo DecryptedDocument
+src/services/mrzNormalizer.ts    čisti sirov OCR izlaz (K→<, dužina linije) PRE mrz parsiranja — bez native zavisnosti
 src/services/__tests__/          Jest testovi
 src/screens/                     ekrani (uključujući privremene *TestScreen za verifikaciju na uređaju)
 __mocks__/                       Jest mape: quick-crypto→Node crypto, SecureStore→memorija, expo-sqlite→in-memory
@@ -92,7 +97,7 @@ __mocks__/                       Jest mape: quick-crypto→Node crypto, SecureSt
 ## Komande
 
 ```bash
-npm test              # 20 Jest testova (crypto + database logika, bez uređaja)
+npm test              # 32 Jest testa (crypto + database + MRZ normalizacija, bez uređaja)
 npx tsc --noEmit      # tipska provera app koda (testove proverava ts-jest)
 npx expo-doctor       # provera konfiguracije
 npx expo start --dev-client --tunnel    # razvoj na instaliranom dev buildu
@@ -118,7 +123,19 @@ stižu preko Metro-a.
 
 - `mrz` paket zahteva TAČNU dužinu linija (TD1=30, TD2=36, TD3=44). OCR skoro
   nikad ne vrati savršenu dužinu → **obavezna normalizacija** svake linije pre
-  parsiranja (višak odseći, manjak dopuniti `<`).
+  parsiranja (višak odseći, manjak dopuniti `<`) — implementirano u
+  `mrzNormalizer.ts`.
+- Izmereno na uređaju (ML Kit, OCR-B): filler `<` se sporadično čita kao `K`,
+  najčešće u nizovima na kraju polja. Normalizator to ispravlja pozicijski,
+  NE agresivno — usamljeno `K` se dira samo ako mu NIJEDAN sused nije slovo
+  (inače ostaje, jer imena u MRZ-u često stoje odmah uz `<<` separator, npr.
+  "KATARINA", i doslovno pravilo "K uz bilo koji `<`" bi ih pokvarilo).
+  Check-digit u `mrz` je krajnji sudija — bolje da parser javi grešku nego da
+  normalizator pogodi pogrešno.
+- `mrz` (npm) je ESM-only, bez CJS builda → Jest ga ne parsira po default-u
+  (node_modules se ne transformišu). Rešeno ciljanim transform pravilom u
+  `jest.config.js` (ts-jest sa `allowJs` samo za `node_modules/mrz/**.js`),
+  bez menjanja transform-a za ostatak koda.
 - ML Kit OCR + `mrz` rade pouzdano na realnom uređaju (dokazano POC-om) —
   ne menjati OCR stack.
 - `react-native-quick-crypto` kopira Node `crypto` API → zato Jest testovi
