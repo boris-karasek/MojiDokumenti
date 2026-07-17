@@ -24,7 +24,13 @@
     },
     "plugins": [
       "expo-secure-store",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Aplikaciji je potrebna kamera za skeniranje MRZ zone dokumenta."
+        }
+      ]
     ],
     "extra": {
       "eas": {

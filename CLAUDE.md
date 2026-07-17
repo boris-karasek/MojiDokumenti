@@ -9,7 +9,7 @@ podaci se **enkriptuju na uređaju** i čuvaju; app podseća pred istek dokument
 Čuvaju se **samo strukturirani podaci, nikad slike dokumenata**.
 
 Srž rada je **kriptografija i zero-knowledge arhitektura** — sve odluke se mere
-prema tome. Rok: 2-3 meseca. Autor je student; objasni netrivijalne odluke u
+prema tome. Autor je student; objasni netrivijalne odluke u
 komentarima, jer kod ulazi u tekst rada.
 
 ## Trenutno stanje (ažuriraj posle svakog modula!)
@@ -20,8 +20,16 @@ komentarima, jer kod ulazi u tekst rada.
 - ✅ Modul 4: MRZ generator (`tools/mrz-generator/`, samostalan CLI alat izvan mobilne app) —
   ICAO 9303 check-digit (7-3-1), TD3 + TD1, samoverifikacija preko paketa `mrz`,
   `--corrupt` za namerno oštećene varijante, vitest testovi
-- ⏳ **SLEDEĆI — Modul 5: MRZ skeniranje (kamera + OCR)**
-- Zatim: 6. manuelni unos → 7. lista/detalji
+- ✅ **Modul 5 — MRZ skeniranje (kamera + OCR)**:
+  normalizacioni sloj (`src/services/mrzNormalizer.ts` — čisti OCR K→<
+  greške i dužinu linije pre `mrz` parsiranja, 12 Jest testova uključujući
+  end-to-end TD1+TD3 preko pravog `mrz` paketa) + `src/screens/ScanScreen.tsx`
+  (`expo-camera` + ML Kit OCR → kandidat-linije → normalizacija → `mrz`
+  parsing → potvrda korisnika → `saveDocument`), sa debug prikazom celog
+  toka na uređaju (flag u UI). `app.json` ima `expo-camera` config plugin
+  (dozvola za kameru) — **zahteva nov native build** ako je dev build
+  instaliran pre ovog modula.
+- Sledeće: 6. manuelni unos → 7. lista/detalji
   → 8. lokalne notifikacije → 9. Firebase Auth + Firestore sync → 10. QR prenos
   ključa → 11. biometrija 
 
@@ -60,7 +68,7 @@ kamera → OCR (ML Kit, on-device) → MRZ parsing → DocumentData objekat
 
 | Deo | Paket |
 |---|---|
-| Framework | React Native + Expo SDK 56, TypeScript (strict) |
+| Framework | React Native + Expo SDK 57, TypeScript (strict) |
 | Build | EAS dev build ili `npx expo run:android` (NE Expo Go — native paketi) |
 | Kamera | `expo-camera` |
 | OCR | `@react-native-ml-kit/text-recognition` (on-device) |
@@ -84,15 +92,17 @@ src/types.ts                     CENTRALNI model — svaka izmena modela kreće 
 src/navigation.ts                RootStackParamList — nov ekran se registruje tu
 src/services/crypto.ts           ključ + AES-GCM (NE menjati bez dogovora s autorom)
 src/services/database.ts         repository sloj (expo-sqlite + crypto) — vraća samo DecryptedDocument
+src/services/mrzNormalizer.ts    čisti sirov OCR izlaz (K→<, dužina linije) PRE mrz parsiranja — bez native zavisnosti
 src/services/__tests__/          Jest testovi
 src/screens/                     ekrani (uključujući privremene *TestScreen za verifikaciju na uređaju)
+src/screens/ScanScreen.tsx       kamera (expo-camera) + ML Kit OCR → mrzNormalizer → mrz parsing → potvrda → saveDocument
 __mocks__/                       Jest mape: quick-crypto→Node crypto, SecureStore→memorija, expo-sqlite→in-memory
 ```
 
 ## Komande
 
 ```bash
-npm test              # 20 Jest testova (crypto + database logika, bez uređaja)
+npm test              # 32 Jest testa (crypto + database + MRZ normalizacija, bez uređaja)
 npx tsc --noEmit      # tipska provera app koda (testove proverava ts-jest)
 npx expo-doctor       # provera konfiguracije
 npx expo start --dev-client --tunnel    # razvoj na instaliranom dev buildu
@@ -118,9 +128,35 @@ stižu preko Metro-a.
 
 - `mrz` paket zahteva TAČNU dužinu linija (TD1=30, TD2=36, TD3=44). OCR skoro
   nikad ne vrati savršenu dužinu → **obavezna normalizacija** svake linije pre
-  parsiranja (višak odseći, manjak dopuniti `<`).
+  parsiranja (višak odseći, manjak dopuniti `<`) — implementirano u
+  `mrzNormalizer.ts`.
+- Izmereno na uređaju (ML Kit, OCR-B): filler `<` se sporadično čita kao `K`,
+  najčešće u nizovima na kraju polja. Normalizator to ispravlja pozicijski,
+  NE agresivno — usamljeno `K` se dira samo ako mu NIJEDAN sused nije slovo
+  (inače ostaje, jer imena u MRZ-u često stoje odmah uz `<<` separator, npr.
+  "KATARINA", i doslovno pravilo "K uz bilo koji `<`" bi ih pokvarilo).
+  Check-digit u `mrz` je krajnji sudija — bolje da parser javi grešku nego da
+  normalizator pogodi pogrešno.
+- `mrz` (npm) je ESM-only, bez CJS builda → Jest ga ne parsira po default-u
+  (node_modules se ne transformišu). Rešeno ciljanim transform pravilom u
+  `jest.config.js` (ts-jest sa `allowJs` samo za `node_modules/mrz/**.js`),
+  bez menjanja transform-a za ostatak koda.
 - ML Kit OCR + `mrz` rade pouzdano na realnom uređaju (dokazano POC-om) —
   ne menjati OCR stack.
+- `mrz` paket NE pogađa vek datuma: `parseDate` u paketu samo validira
+  YYMMDD (mesec 1-12, dan 1-31) i vraća sirov string, vek ostaje na
+  pozivaocu. U `ScanScreen.tsx` (`yymmddToIso`): birthDate koristi pivot
+  00-30→20xx / 31-99→19xx (uvek u prošlosti), expiryDate je uvek 20xx
+  (dokumenti koje app prati praktično ne postoje iz XX veka). Ako se ikad
+  pojavi realan slučaj gde ovo pogrešno pogodi vek, prvo proveriti ovde pre
+  menjanja mrzNormalizer-a — normalizator ne dira datume, samo linije.
+- `expo-camera` zahteva config plugin u `app.json` (`cameraPermission` poruka)
+  da bi native dozvola bila deklarisana — bez njega app pri `takePictureAsync`
+  puca na uređaju bez jasne poruke. Dodavanje/izmena plugina u `app.json`
+  je izmena native sloja → obavezan nov `expo run:android`/EAS build, JS/TS
+  hot-reload preko Metro-a nije dovoljan.
+- `mrz.parse()` vraća rezultat i kad `valid:false` (ne baca grešku) — provera
+  mora biti eksplicitna (`if (!parsed.valid)`), ne oslanjati se na try/catch.
 - `react-native-quick-crypto` kopira Node `crypto` API → zato Jest testovi
   rade na laptopu preko `moduleNameMapper`. Unit testovi dokazuju LOGIKU;
   native implementaciju dokazuje CryptoTestScreen na uređaju. Oba sloja ostaju.

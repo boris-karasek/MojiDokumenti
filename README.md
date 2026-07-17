@@ -20,7 +20,12 @@ Detaljna arhitektura, bezbednosne invarijante i konvencije razvoja su u
   ICAO 9303 check-digit (7-3-1), TD3 + TD1, samoverifikacija preko paketa `mrz`,
   `--corrupt` za namerno oštećene varijante, `--expiry` za kontrolu roka isteka
   (valid/soon/expired), vitest testovi
-- ⏳ Modul 5: MRZ skeniranje (kamera + OCR) — sledeći
+- ✅ Modul 5: MRZ skeniranje (kamera + OCR) — normalizacioni sloj
+  (`src/services/mrzNormalizer.ts`, čisti OCR K→< greške i dužinu linije pre
+  `mrz` parsiranja, 12 Jest testova) + `ScanScreen` (`expo-camera` +
+  ML Kit OCR → normalizacija → `mrz` parsing → potvrda → `saveDocument`),
+  sa ugrađenim debug prikazom toka za dijagnostiku na uređaju
+- Sledeće: Modul 6 (manuelni unos dokumenta, bez skeniranja)
 
 ## Tehnologije
 
@@ -45,6 +50,10 @@ eas build --profile development --platform android
 npx expo run:android
 ```
 
+`app.json` sadrži `expo-camera` config plugin (dozvola za kameru) — ako je dev
+build instaliran PRE modula 5, potreban je nov build da se dozvola ugradi u
+native sloj.
+
 Nakon što je dev build instaliran, dalje JS/TS izmene stižu preko Metro-a bez
 ponovnog builda:
 
@@ -60,8 +69,9 @@ src/types.ts                     centralni model podataka (DocumentData, Encrypt
 src/navigation.ts                RootStackParamList
 src/services/crypto.ts           master ključ (Keystore) + AES-256-GCM
 src/services/database.ts         repository sloj: expo-sqlite + crypto, vraća samo DecryptedDocument
-src/services/__tests__/          Jest testovi crypto i database logike
-src/screens/                     ekrani (Home, CryptoTest, DatabaseTest, …)
+src/services/mrzNormalizer.ts    čisti sirov OCR izlaz (K→<, dužina linije) pre mrz parsiranja — bez native zavisnosti
+src/services/__tests__/          Jest testovi crypto, database i MRZ normalizacije
+src/screens/                     ekrani (Home, CryptoTest, DatabaseTest, ScanScreen, …)
 __mocks__/                       Jest mape: quick-crypto → Node crypto, SecureStore → memorija, expo-sqlite → in-memory
 tools/mrz-generator/             razvojni CLI alat — generator sintetičkih MRZ zapisa (v. ispod), NIJE deo mobilne app
 ```
@@ -89,7 +99,7 @@ Detalji (algoritam, layout polja, svi primeri) su u
 ## Testiranje i provera tipova
 
 ```bash
-npm test              # Jest testovi crypto i database logike (bez uređaja)
+npm test              # 32 Jest testa: crypto, database i MRZ normalizacija (bez uređaja)
 npx tsc --noEmit       # tipska provera app koda
 npx expo-doctor        # provera konfiguracije projekta
 ```
@@ -122,6 +132,34 @@ plaintext. **Native implementaciju i perzistenciju na uređaju** verifikuje
 3. Sačuvaj par test dokumenata, **prekini proces app i pokreni ponovo**, otvori ekran i
    pritisni SAMO **Učitaj postojeće** (bez Save-a) → dokumenti se i dalje
    pojavljuju → baza je perzistentna preko restarta.
+
+`src/services/mrzNormalizer.ts` čisti sirov OCR izlaz pre `mrz` paketa — bez
+native zavisnosti, pa je u potpunosti testabilan na laptopu (nema poseban
+*TestScreen sloj kao crypto/baza). Jest testovi (`mrzNormalizer.test.ts`)
+dokazuju:
+
+- filler nizove pogrešno pročitane kao `K` (npr. `"BORIS<KK<K<"`,
+  `"BORISKKKKKK"`),
+- da prava imena sa `K` (npr. "MARKO", "KATARINA") ostaju netaknuta,
+- normalizaciju dužine linije (TD1=30, TD3=44) i kraćenjem i dopunjavanjem,
+- dva potpuno "prljava" TD3/TD1 primera koji posle normalizacije prolaze kroz
+  pravi `mrz` paket sa `valid: true` (end-to-end dokaz, ne samo unit nivo).
+
+Kamera, ML Kit OCR i `ScanScreen` su native/UI sloj koji Jest ne pokriva —
+verifikuje se ručno na uređaju preko `HomeScreen` → **MRZ skeniranje**:
+
+1. Prva poseta ekranu traži dozvolu za kameru; testirati i odbijanje
+   (poruka + dugme koje vodi u podešavanja uređaja).
+2. Uslikati MRZ zonu (pasoš ili lična karta) uz dobro osvetljenje → očekivan
+   preview sa ispravno mapiranim poljima, posebno datum rođenja i datum
+   isteka (vek se pogađa ručno jer `mrz` paket vraća sirov `YYMMDD`).
+3. Uslikati nešto bez MRZ zone / loše osvetljeno → "Skeniranje nije uspelo" +
+   "Pokušaj ponovo", ništa se ne sme upisati u bazu.
+4. **Debug** prekidač (gornji desni ugao ekrana) posle jednog pokušaja
+   prikazuje sirov OCR tekst → kandidat linije → normalizovane linije → 
+   parsirana polja — koristi se i za evaluaciju OCR pouzdanosti u radu.
+5. Na preview ekranu **Sačuvaj** → proveriti kroz `DatabaseTestScreen` da je
+   dokument stvarno upisan i da polja odgovaraju MRZ zoni.
 
 ## Bezbednosne invarijante
 
