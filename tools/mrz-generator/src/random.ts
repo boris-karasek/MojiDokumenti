@@ -1,5 +1,3 @@
-const DOCUMENT_NUMBER_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".split("");
-
 export function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -10,10 +8,11 @@ export function randomItem<T>(items: readonly T[]): T {
   return item;
 }
 
-export function randomDocumentNumber(length = 9): string {
+/** Nasumičan string od `length` cifara (0-9) — koristi se za brojeve dokumenata i JMBG. */
+export function randomNumericString(length: number): string {
   let result = "";
   for (let i = 0; i < length; i++) {
-    result += randomItem(DOCUMENT_NUMBER_ALPHABET);
+    result += randomInt(0, 9);
   }
   return result;
 }

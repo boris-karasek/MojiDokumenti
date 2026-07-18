@@ -40,7 +40,8 @@ google-services.json
 GoogleService-Info.plist
 
 # lokalni dokumenti za generisanje MRZ koda (za kasnije module)
-tools/mrz-generator/documents.json
+tools/mrz-generator/documents-td1.json
+tools/mrz-generator/documents-td3.json
 
 # Claude Code — lokalna, lična podešavanja (nisu za deljenje)
 .claude/settings.local.json
