@@ -8,24 +8,30 @@ lokalno; app podseća pred istek dokumenta lokalnim notifikacijama. Čuvaju se
 kriptografija i zero-knowledge arhitektura — server (kad bude dodat u modulu
 9) nikad ne vidi ključ ni plaintext.
 
+**Obim:** automatsko MRZ čitanje podržava isključivo srpska dokumenta (pasoš
+TD3, lična karta TD1). Strani dokumenti i dokumenti bez MRZ zone (vozačka,
+oružni list, platne kartice) unose se manuelno (modul 6).
+
 Detaljna arhitektura, bezbednosne invarijante i konvencije razvoja su u
 [CLAUDE.md](./CLAUDE.md).
 
 ## Trenutno stanje
 
 - ✅ Modul 1: struktura projekta + navigacija
-- ✅ Modul 2: crypto modul (AES-256-GCM) + 12 Jest testova (logika) + CryptoTestScreen sa 6 on-device provera (native implementacija na uredjaju)
+- ✅ Modul 2: crypto modul (AES-256-GCM) + 12 Jest testova (logika) + CryptoTestScreen sa 6 on-device provera (native implementacija na uređaju)
 - ✅ Modul 3: lokalna baza (`expo-sqlite`) + repository sloj + 8 Jest testova
 - ✅ Modul 4: MRZ generator (`tools/mrz-generator/`, samostalan CLI alat, van mobilne app) —
-  ICAO 9303 check-digit (7-3-1), TD3 + TD1, samoverifikacija preko paketa `mrz`,
-  `--corrupt` za namerno oštećene varijante, `--expiry` za kontrolu roka isteka
-  (valid/soon/expired), vitest testovi
+  generiše ISKLJUČIVO srpska dokumenta (pasoš TD3 + lična karta TD1),
+  numerički brojevi dokumenata, strukturno validan JMBG (zaseban mod-11
+  algoritam), ICAO 9303 check-digit (7-3-1), samoverifikacija preko paketa
+  `mrz`, `--corrupt` za namerno oštećene varijante, `--expiry` za kontrolu
+  roka isteka (valid/soon/expired), vitest testovi
 - ✅ Modul 5: MRZ skeniranje (kamera + OCR) — normalizacioni sloj
   (`src/services/mrzNormalizer.ts`, čisti OCR K→< greške i dužinu linije pre
   `mrz` parsiranja, 12 Jest testova) + `ScanScreen` (`expo-camera` +
   ML Kit OCR → normalizacija → `mrz` parsing → potvrda → `saveDocument`),
   sa ugrađenim debug prikazom toka za dijagnostiku na uređaju
-- Sledeće: Modul 6 (manuelni unos dokumenta, bez skeniranja)
+- Sledeće: Modul 6 (manuelni unos — dokumenti bez MRZ zone i strani dokumenti)
 
 ## Tehnologije
 
@@ -80,12 +86,18 @@ tools/mrz-generator/             razvojni CLI alat — generator sintetičkih MR
 
 [`tools/mrz-generator/`](./tools/mrz-generator/) je samostalan Node.js/TypeScript
 CLI alat (sopstveni `package.json`, van mobilne app) koji generiše sintetičke
-(izmišljene) MRZ zapise za testiranje OCR/parsing pipeline-a i za evaluaciju u
-radu:
+(izmišljene) MRZ zapise — ISKLJUČIVO srpska dokumenta — za testiranje
+OCR/parsing pipeline-a i za evaluaciju u radu:
 
-- **TD3** (pasoš, 2×44) i **TD1** (lična karta, 3×30), sa ICAO 9303
-  check-digitom (težine 7-3-1) i samoverifikacijom preko paketa `mrz`
-  (svaki zapis mora vratiti `valid: true`).
+- **TD3** (pasoš, 2×44) i **TD1** (lična karta, 3×30), uvek `nationality: SRB`,
+  sa ICAO 9303 check-digitom (težine 7-3-1) i samoverifikacijom preko paketa
+  `mrz` (svaki zapis mora vratiti `valid: true`).
+- Brojevi dokumenata su čisto numerički (rešava OCR 0/O dvosmislenost); imena
+  se transliterišu iz srpske dijakritike u MRZ A-Z opseg (Č/Ć→C, Đ→DJ, Š→S,
+  Ž→Z).
+- JMBG (13 cifara, `DDMMGGG+RR+BBB+K`) je strukturno validan — datum odgovara
+  generisanom rođenju, kontrolna cifra po zasebnom JMBG mod-11 algoritmu
+  (NIJE isto što i ICAO check-digit).
 - `--corrupt=<n>` — namerno oštećene (nevalidne) varijante za evaluaciju
   robusnosti OCR-a.
 - `--expiry=<spec>` — kontrola datuma isteka: `valid` (2-9 godina, podrazumevano),
@@ -99,9 +111,13 @@ Detalji (algoritam, layout polja, svi primeri) su u
 ## Testiranje i provera tipova
 
 ```bash
-npm test              # 32 Jest testa: crypto, database i MRZ normalizacija (bez uređaja)
-npx tsc --noEmit       # tipska provera app koda
-npx expo-doctor        # provera konfiguracije projekta
+npm test              # Jest: crypto, database i MRZ normalizacija (bez uređaja)
+npx tsc --noEmit      # tipska provera app koda
+npx expo-doctor       # provera konfiguracije projekta
+
+# Generator je zaseban pod-projekat (sopstveni package.json, Vitest) —
+# glavni `npm test` ga NE pokriva:
+cd tools/mrz-generator && npm install && npm test
 ```
 
 `react-native-quick-crypto` kopira Node-ov `crypto` API, pa Jest testovi rade
@@ -160,6 +176,18 @@ verifikuje se ručno na uređaju preko `HomeScreen` → **MRZ skeniranje**:
    parsirana polja — koristi se i za evaluaciju OCR pouzdanosti u radu.
 5. Na preview ekranu **Sačuvaj** → proveriti kroz `DatabaseTestScreen` da je
    dokument stvarno upisan i da polja odgovaraju MRZ zoni.
+
+### Kontinuirana integracija
+
+Na svaki push na `main` i na svaki pull request, GitHub Actions
+([`.github/workflows/ci.yml`](./.github/workflows/ci.yml)) automatski pokreće:
+
+- `npx tsc --noEmit` i `npm test` za mobilnu aplikaciju (Jest),
+- `npm run typecheck` i `npm test` za generator (Vitest, kroz
+  `working-directory: tools/mrz-generator`).
+
+Nijedan modul ne može da se spoji u `main` sa polomljenim tipovima ili
+oborenim testovima.
 
 ## Bezbednosne invarijante
 

@@ -4,16 +4,18 @@ import { buildNameField, padField, type MRZResult } from "./fields.js";
 import type { SyntheticIdentity } from "./identity.js";
 
 const LINE_LENGTH = 44;
-const PERSONAL_NUMBER = "<".repeat(14);
 
 /**
- * TD3 (pasoš) — 2 linije po 44 karaktera. Layout po ICAO 9303 Part 4:
+ * TD3 (srpski pasoš) — 2 linije po 44 karaktera. Layout po ICAO 9303 Part 4:
  *
- * Linija 1: "P<" + zemlja izdavanja(3) + polje imena(39)
- * Linija 2: broj dokumenta(9) + CD + nacionalnost(3) + rođenje(6) + CD
- *           + pol(1) + istek(6) + CD + lični broj(14) + CD + kompozitni CD
+ * Linija 1: "P<SRB" + polje imena(39)
+ * Linija 2: broj pasoša(9, numerički) + CD + "SRB" + rođenje(6) + CD
+ *           + pol(1) + istek(6) + CD + JMBG(13) + "<" + CD + kompozitni CD
  *
- * Kompozitni check-digit se računa nad: broj dokumenta+CD (10) + datum
+ * Lični broj (personal number) polje je 14 karaktera po ICAO standardu —
+ * ovde nosi JMBG (13 cifara) + jedan filler `<`.
+ *
+ * Kompozitni check-digit se računa nad: broj pasoša+CD (10) + datum
  * rođenja+CD (7) + datum isteka+CD+lični broj+CD (22) = 39 karaktera.
  */
 export function generateTD3(identity: SyntheticIdentity): MRZResult {
@@ -33,10 +35,11 @@ export function generateTD3(identity: SyntheticIdentity): MRZResult {
   const birthDateCheck = checkDigitChar(birthDate);
   const expiryDate = formatMRZDate(identity.expiryDate);
   const expiryDateCheck = checkDigitChar(expiryDate);
-  const personalNumberCheck = checkDigitChar(PERSONAL_NUMBER);
+  const personalNumber = identity.jmbg + "<";
+  const personalNumberCheck = checkDigitChar(personalNumber);
 
   const compositeInput =
-    documentNumber + documentNumberCheck + birthDate + birthDateCheck + expiryDate + expiryDateCheck + PERSONAL_NUMBER + personalNumberCheck;
+    documentNumber + documentNumberCheck + birthDate + birthDateCheck + expiryDate + expiryDateCheck + personalNumber + personalNumberCheck;
   const compositeCheck = checkDigitChar(compositeInput);
 
   const line2 = [
@@ -48,7 +51,7 @@ export function generateTD3(identity: SyntheticIdentity): MRZResult {
     identity.sex,
     expiryDate,
     expiryDateCheck,
-    PERSONAL_NUMBER,
+    personalNumber,
     personalNumberCheck,
     compositeCheck,
   ].join("");

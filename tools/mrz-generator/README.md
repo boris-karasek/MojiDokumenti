@@ -6,10 +6,12 @@ mobilne aplikacije i za evaluaciju u diplomskom radu. **Nije deo mobilne
 aplikacije** — samostalan Node.js/TypeScript projekat sa sopstvenim
 `package.json`.
 
-Generiše nepostojeće ljude (imena iz fiksne liste, npr. `MARKO PETROVIC`) i
-nasumične brojeve dokumenata, ali sa ISPRAVNO izračunatim check-digitovima po
-ICAO 9303 standardu — svaki zapis se odmah proverava paketom
-[`mrz`](https://www.npmjs.com/package/mrz) (`valid: true`).
+Generiše **isključivo srpska dokumenta** — pasoš (TD3) i ličnu kartu (TD1) —
+za nepostojeće ljude (imena iz fiksne liste, npr. `MARKO PETROVIĆ`), sa
+numeričkim brojevima dokumenata i strukturno validnim JMBG-om. Svi
+check-digitovi su ISPRAVNO izračunati po ICAO 9303 standardu — svaki zapis se
+odmah proverava paketom [`mrz`](https://www.npmjs.com/package/mrz)
+(`valid: true`).
 
 ## Instalacija
 
@@ -89,40 +91,86 @@ Check-digit se računa nezavisno za četiri polja:
 Testovi u [`src/__tests__/checkDigit.test.ts`](src/__tests__/checkDigit.test.ts)
 proveravaju algoritam nad poznatim ICAO 9303 referentnim primerom.
 
-## Formati
+## Formati — isključivo srpska dokumenta
+
+Generator NE bira nacionalnost nasumično — svaki zapis je srpski pasoš ili
+srpska lična karta (`nationality: "SRB"` je konstanta u `src/identity.ts`,
+ne nasumičan izbor). Brojevi dokumenata su čisto numerički (rešava OCR
+0/O dvosmislenost), a imena se transliterišu iz srpske dijakritike u MRZ
+A-Z opseg (`Č`/`Ć`→`C`, `Đ`→`DJ`, `Š`→`S`, `Ž`→`Z`; v.
+[`src/transliterate.ts`](src/transliterate.ts)).
+
+Fiksan primer korišćen u [`src/__tests__/generators.test.ts`](src/__tests__/generators.test.ts)
+(identitet `MILOŠ ĐORĐEVIĆ`, NE prava osoba — bira transliteraciju Đ→DJ i Š→S
+namerno):
 
 ### TD3 — pasoš (2 linije × 44 karaktera)
 
-Referentni primer iz ICAO Doc 9303 Part 4 Appendix A (koristi se u testovima
-check-digit algoritma, v. gore). Napomena: zemlja `UTO` je fiktivna zemlja iz
-same specifikacije i `mrz` paket je ne prepoznaje kao važeći ISO kod — generator
-zato koristi samo stvarne ISO 3166-1 alpha-3 kodove (v. `src/identity.ts`).
-
 ```
-P<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<
-L898902C36UTO7408122F1204159ZE184226B<<<<<10
+Red 1: "P<SRB" + PREZIME + "<<" + IME + fileri do 44
+Red 2: broj pasoša(9, numerički) + CD + "SRB" + rođenje(YYMMDD) + CD
+       + pol(M/F) + istek(YYMMDD) + CD + JMBG(13) + "<" + CD + kompozitni CD
 ```
 
-Primer stvarno generisanog i samoverifikovanog zapisa:
-
 ```
-P<MKDPETROVIC<<TAMARA<<<<<<<<<<<<<<<<<<<<<<<
-QH6UWMS0W5MKD8206222F2701172<<<<<<<<<<<<<<08
+P<SRBDJORDJEVIC<<MILOS<<<<<<<<<<<<<<<<<<<<<<
+1234567897SRB9005178M30051761705990710012<66
 ```
 
 ### TD1 — lična karta (3 linije × 30 karaktera)
 
-Primer stvarno generisanog i samoverifikovanog zapisa:
+Raspon fillera i tačna formula kompozitnog check-digita su potvrđeni protiv
+`node_modules/mrz` izvora (`td1Fields.js`), ne skraćeni nagađanjem — v.
+komentar na vrhu [`src/td1.ts`](src/td1.ts).
 
 ```
-I<AUTOKCGGOV2I5<<<<<<<<<<<<<<<
-7402049F2910172AUT<<<<<<<<<<<4
-NIKOLIC<<MILICA<<<<<<<<<<<<<<<
+Red 1: "ID" + "SRB" + registarski broj(9, numerički) + CD
+       + opciono polje(15) = JMBG(13) + 2 filler karaktera
+Red 2: rođenje(YYMMDD) + CD + pol + istek(YYMMDD) + CD + "SRB"
+       + opciono polje(11, filler) + kompozitni CD
+Red 3: PREZIME + "<<" + IME + fileri do 30
+```
+
+```
+IDSRB12345678971705990710012<<
+9005178M3005176SRB<<<<<<<<<<<8
+DJORDJEVIC<<MILOS<<<<<<<<<<<<<
 ```
 
 Tačan raspored polja (pozicije, dužine, formula za kompozitni check-digit) je
 dokumentovan komentarima na vrhu [`src/td3.ts`](src/td3.ts) i
 [`src/td1.ts`](src/td1.ts).
+
+## JMBG (Jedinstveni matični broj građana)
+
+Implementacija: [`src/jmbg.ts`](src/jmbg.ts). Format — 13 cifara,
+`DDMMGGG + RR + BBB + K`:
+
+| Deo | Dužina | Značenje |
+|---|---|---|
+| `DDMMGGG` | 7 | datum rođenja — dan, mesec, **poslednje tri cifre godine** (1958 → `958`); MORA odgovarati generisanom `birthDate` |
+| `RR` | 2 | regionalna oznaka mesta rođenja — nasumično iz `70`-`89` (Srbija: `70`-`79` centralna Srbija, `80`-`89` Vojvodina) |
+| `BBB` | 3 | redni broj rođenja istog dana u regionu — po konvenciji `000`-`499` muški, `500`-`999` ženski |
+| `K` | 1 | kontrolna cifra — v. ispod |
+
+**Kontrolna cifra (K) NIJE isti algoritam kao ICAO MRZ check-digit** — to je
+zaseban mod-11 postupak nad prvih 12 cifara:
+
+1. Uparuju se cifre 1&7, 2&8, 3&9, 4&10, 5&11, 6&12.
+2. Svaki par se sabere i pomnoži težinom `7,6,5,4,3,2` (redom).
+3. Proizvodi se saberu, uzme se ostatak po modulu 11.
+4. `K = 11 - ostatak`; ako je `K ≥ 10` (ostatak je 0 ili 1), `K = 0`.
+
+Algoritam i primer su verifikovani prema javno dostupnom objašnjenju formule
+([opsteobrazovanje.in.rs — JMBG](https://www.opsteobrazovanje.in.rs/zanimljivo/jmbg/)):
+generički primer računa za osobu rođenu 05.12.1981. u Beogradu daje
+`JMBG 0512981717776` — kontrolna cifra `6` za prvih 12 cifara
+`051298171777`. Ovaj primer (ilustracija algoritma, ne prava osoba) je
+tačno test-slučaj u [`src/__tests__/jmbg.test.ts`](src/__tests__/jmbg.test.ts).
+
+Regionalne oznake (71=Beograd, 72=Šumadija, 73=Niš, 80=Novi Sad, 81=Sombor,
+82=Subotica, ...) potvrđene prema javno dostupnom pregledu
+([Dnevni list Danas — šifre regiona](https://www.danas.rs/zivot/sta-predstavlja-svaka-cifra-u-vasem-jmbg-u/)).
 
 ## Namerno oštećene varijante (`--corrupt`)
 
@@ -171,6 +219,9 @@ pre uvođenja ove opcije). Kategorija svakog zapisa se ispisuje u konzoli
 ## Napomena o bezbednosti
 
 Generator NIKAD ne koristi podatke stvarnih osoba — imena su iz fiksne liste
-očigledno izmišljenih (v. [`src/identity.ts`](src/identity.ts)), a brojevi
-dokumenata su nasumični. Ovo pravilo važi za sve module projekta (v.
-`CLAUDE.md` u korenu repozitorijuma).
+očigledno izmišljenih (v. [`src/identity.ts`](src/identity.ts)), brojevi
+dokumenata su nasumični, a JMBG je strukturno validan (ispravna kontrolna
+cifra, DDMMGGG odgovara generisanom datumu rođenja) ali NIJE dodeljen
+stvarnoj osobi — RR (region) i BBB (redni broj) su nasumični, ne stvarni
+matični podaci. Ovo pravilo važi za sve module projekta (v. `CLAUDE.md` u
+korenu repozitorijuma).

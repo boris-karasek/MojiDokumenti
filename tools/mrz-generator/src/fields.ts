@@ -1,3 +1,5 @@
+import { transliterateSerbianName } from "./transliterate.js";
+
 export interface MRZResult {
   lines: string[];
 }
@@ -9,12 +11,8 @@ export function padField(value: string, length: number): string {
 
 /** MRZ polje imena: PREZIME<<IME<DRUGO_IME, popunjeno `<` do tražene dužine. */
 export function buildNameField(lastName: string, firstName: string, length: number): string {
-  const last = lastName.toUpperCase().replace(/[^A-Z]/g, "");
-  const firstParts = firstName
-    .toUpperCase()
-    .replace(/[^A-Z ]/g, "")
-    .split(" ")
-    .filter(Boolean);
+  const last = transliterateSerbianName(lastName).replace(/ /g, "");
+  const firstParts = transliterateSerbianName(firstName).split(" ").filter(Boolean);
   const raw = `${last}<<${firstParts.join("<")}`;
   return padField(raw, length);
 }
