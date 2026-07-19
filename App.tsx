@@ -18,6 +18,7 @@ import HomeScreen from './src/screens/HomeScreen';
 import CryptoTestScreen from './src/screens/CryptoTestScreen';
 import DatabaseTestScreen from './src/screens/DatabaseTestScreen';
 import ScanScreen from './src/screens/ScanScreen';
+import ManualEntryScreen from './src/screens/ManualEntryScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -69,6 +70,11 @@ export default function App() {
           name="ScanDocument"
           component={ScanScreen}
           options={{ title: 'Skeniranje MRZ-a', headerShown: false }}
+        />
+        <Stack.Screen
+          name="ManualEntry"
+          component={ManualEntryScreen}
+          options={{ title: 'Ručni unos dokumenta' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
