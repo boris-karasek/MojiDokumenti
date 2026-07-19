@@ -36,10 +36,18 @@ komentarima, jer kod ulazi u tekst rada.
   (dozvola za kameru) — **zahteva nov native build** ako je dev build
   instaliran pre ovog modula. Verifikovano na uređaju: prava lična karta i pasoš pročitani bez greške iz
   prvog pokušaja; sintetički uzorci (generator) takođe prolaze.
-- Sledeće: 6. manuelni unos (nosi i strane dokumente i one bez MRZ zone —
-  v. sekciju Obim, zato je važniji nego što je prvobitni plan sugerisao)
-  → 7. lista/detalji → 8. lokalne notifikacije → 9. Firebase Auth + Firestore
-  sync → 10. QR prenos ključa → 11. biometrija
+- ✅ **Modul 6 — manuelni unos**: `src/services/documentValidation.ts`
+  (čista validaciona funkcija bez UI zavisnosti — obavezna polja, expiryDate
+  obavezan, birthDate ne sme biti u budućnosti, platna kartica tačno 4
+  cifre, 18 Jest testova) + `src/screens/ManualEntryScreen.tsx` (izbor
+  `DocumentType`, tekstualna polja, datumi preko
+  `@react-native-community/datetimepicker`) → proizvodi isti `DocumentData`
+  oblik i zove isti `saveDocument` kao ScanScreen. Platna kartica čuva
+  ISKLJUČIVO poslednje 4 cifre (nikad pun broj, ni šifrovan) — bezbednosna
+  odluka. `app.json` dobio config plugin za datetimepicker — **zahteva nov
+  native build** ako je dev build instaliran pre ovog modula.
+- Sledeće: 7. lista/detalji → 8. lokalne notifikacije → 9. Firebase Auth +
+  Firestore sync → 10. QR prenos ključa → 11. biometrija
 
 ## Arhitektura
 
@@ -96,6 +104,7 @@ dvosmislenost (v. Naučene lekcije).
 | Enkripcija | `react-native-quick-crypto` + `@craftzdog/react-native-buffer` |
 | Ključ | `expo-secure-store` |
 | Lokalna baza | `expo-sqlite` |
+| Datumi (manuelni unos) | `@react-native-community/datetimepicker` |
 | Notifikacije | `expo-notifications` (lokalne!) |
 | Cloud (modul 9) | Firebase Auth + Firestore |
 | QR (modul 10) | `react-native-qrcode-svg` + `expo-camera` |
@@ -113,9 +122,11 @@ src/navigation.ts                RootStackParamList — nov ekran se registruje 
 src/services/crypto.ts           ključ + AES-GCM (NE menjati bez dogovora s autorom)
 src/services/database.ts         repository sloj (expo-sqlite + crypto) — vraća samo DecryptedDocument
 src/services/mrzNormalizer.ts    čisti sirov OCR izlaz (K→<, dužina linije) PRE mrz parsiranja — bez native zavisnosti
+src/services/documentValidation.ts  čista validacija manuelnog unosa (bez UI-ja) — obavezna polja, datumi, platna kartica
 src/services/__tests__/          Jest testovi
 src/screens/                     ekrani (uključujući privremene *TestScreen za verifikaciju na uređaju)
 src/screens/ScanScreen.tsx       kamera (expo-camera) + ML Kit OCR → mrzNormalizer → mrz parsing → potvrda → saveDocument
+src/screens/ManualEntryScreen.tsx  forma bez kamere/OCR-a → documentValidation → saveDocument (isti DocumentData kao ScanScreen)
 __mocks__/                       Jest mape: quick-crypto→Node crypto, SecureStore→memorija, expo-sqlite→in-memory
 ```
 
@@ -124,7 +135,7 @@ __mocks__/                       Jest mape: quick-crypto→Node crypto, SecureSt
 Aplikacija (root projekta):
 
 ```bash
-npm test              # Jest: crypto + database + MRZ normalizacija (bez uređaja)
+npm test              # Jest: crypto + database + MRZ normalizacija + validacija manuelnog unosa (bez uređaja)
 npx tsc --noEmit      # tipska provera app koda (testove proverava ts-jest)
 npx expo-doctor       # provera konfiguracije
 npx expo start --dev-client --tunnel    # razvoj na instaliranom dev buildu
@@ -218,6 +229,15 @@ stižu preko Metro-a.
 - Kamera hvata širi kadar nego što se vidi u preview-u: pri skeniranju
   odštampanih uzoraka lako uđe susedni MRZ sa ivice papira i pokvari OCR.
   Skenirati jedan uzorak po jedan (ostale prekriti).
+- `@react-native-community/datetimepicker` je, kao i `expo-camera`, native
+  paket sa config pluginom — `npx expo install` ga sam dodao u `app.json`
+  → isti zaključak kao za kameru: nov native build je obavezan ako je dev
+  build instaliran pre modula 6, JS/TS hot-reload nije dovoljan.
+- `mrz.parse()` javlja check-digit grešku tek POSLE što je korisnik dokument
+  fotografisao; kod manuelnog unosa ekvivalentna zaštita ne postoji (korisnik
+  ručno kuca, nema check-digit da uhvati typo). Zato je validacija stroža na
+  mestima gde je greška najskuplja: platna kartica prihvata TAČNO 4 cifre
+  (regex, ne "nije prazno") da se spreči greškom ukucan pun broj kartice.
 
 ## Model podataka
 

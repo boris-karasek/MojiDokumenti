@@ -31,7 +31,13 @@ Detaljna arhitektura, bezbednosne invarijante i konvencije razvoja su u
   `mrz` parsiranja, 12 Jest testova) + `ScanScreen` (`expo-camera` +
   ML Kit OCR → normalizacija → `mrz` parsing → potvrda → `saveDocument`),
   sa ugrađenim debug prikazom toka za dijagnostiku na uređaju
-- Sledeće: Modul 6 (manuelni unos — dokumenti bez MRZ zone i strani dokumenti)
+- ✅ Modul 6: manuelni unos — `src/services/documentValidation.ts` (čista
+  validaciona funkcija, 18 Jest testova) + `ManualEntryScreen` (izbor tipa
+  dokumenta, tekstualna polja, `@react-native-community/datetimepicker` za
+  datume) → isti `DocumentData` i isti `saveDocument` kao ScanScreen, za
+  dokumente bez MRZ zone i strane dokumente (vozačka, oružni list, platna
+  kartica — koja čuva SAMO poslednje 4 cifre)
+- Sledeće: Modul 7 (lista/detalji dokumenata)
 
 ## Tehnologije
 
@@ -76,8 +82,9 @@ src/navigation.ts                RootStackParamList
 src/services/crypto.ts           master ključ (Keystore) + AES-256-GCM
 src/services/database.ts         repository sloj: expo-sqlite + crypto, vraća samo DecryptedDocument
 src/services/mrzNormalizer.ts    čisti sirov OCR izlaz (K→<, dužina linije) pre mrz parsiranja — bez native zavisnosti
-src/services/__tests__/          Jest testovi crypto, database i MRZ normalizacije
-src/screens/                     ekrani (Home, CryptoTest, DatabaseTest, ScanScreen, …)
+src/services/documentValidation.ts  čista validacija manuelnog unosa — testabilna bez UI-ja
+src/services/__tests__/          Jest testovi crypto, database, MRZ normalizacije i manuelnog unosa
+src/screens/                     ekrani (Home, CryptoTest, DatabaseTest, ScanScreen, ManualEntryScreen, …)
 __mocks__/                       Jest mape: quick-crypto → Node crypto, SecureStore → memorija, expo-sqlite → in-memory
 tools/mrz-generator/             razvojni CLI alat — generator sintetičkih MRZ zapisa (v. ispod), NIJE deo mobilne app
 ```
@@ -111,7 +118,7 @@ Detalji (algoritam, layout polja, svi primeri) su u
 ## Testiranje i provera tipova
 
 ```bash
-npm test              # Jest: crypto, database i MRZ normalizacija (bez uređaja)
+npm test              # Jest: crypto, database, MRZ normalizacija i validacija manuelnog unosa (bez uređaja)
 npx tsc --noEmit      # tipska provera app koda
 npx expo-doctor       # provera konfiguracije projekta
 
@@ -160,6 +167,19 @@ dokazuju:
 - normalizaciju dužine linije (TD1=30, TD3=44) i kraćenjem i dopunjavanjem,
 - dva potpuno "prljava" TD3/TD1 primera koji posle normalizacije prolaze kroz
   pravi `mrz` paket sa `valid: true` (end-to-end dokaz, ne samo unit nivo).
+
+`src/services/documentValidation.ts` je čista funkcija (bez UI/native
+zavisnosti) koja proverava formu manuelnog unosa (modul 6) pre nego što
+`ManualEntryScreen` pozove `saveDocument` — obavezna polja, `expiryDate`
+obavezan i validan, `birthDate` ne sme biti u budućnosti, a za
+`platna_kartica` broj mora biti tačno 4 cifre (čuvaju se ISKLJUČIVO poslednje
+4 cifre, nikad pun broj kartice — bezbednosna odluka). Jest testovi
+(`documentValidation.test.ts`) pokrivaju sva ova pravila uključujući granične
+slučajeve (datum rođenja tačno "sada", 3 vs. 4 vs. 16 cifara kartice).
+`ManualEntryScreen` sam je čist UI sloj (state + `DateTimePicker`) koji poziva
+istu `saveDocument` funkciju kao ScanScreen — verifikacija na uređaju:
+Home → **Unesi ručno** → popuniti formu → **Sačuvaj** → proveriti kroz
+`DatabaseTestScreen` da je zapis stvarno upisan.
 
 Kamera, ML Kit OCR i `ScanScreen` su native/UI sloj koji Jest ne pokriva —
 verifikuje se ručno na uređaju preko `HomeScreen` → **MRZ skeniranje**:
