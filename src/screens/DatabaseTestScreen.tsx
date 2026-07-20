@@ -28,7 +28,6 @@ function makeTestDocument(): DocumentData {
     firstName: 'TEST',
     lastName: 'TESTOVIC',
     nationality: 'XXX',
-    birthDate: '1990-01-01T00:00:00.000Z',
     expiryDate: '2031-01-01T00:00:00.000Z',
     createdAt: Date.now(),
   };

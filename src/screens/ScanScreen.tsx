@@ -86,22 +86,19 @@ function mrzTypeToDocumentType(mrzType: MrzDocumentType): DocumentType {
 /**
  * mrz paket vraća datume kao sirove YYMMDD stringove — parseDate u mrz
  * paketu ih samo validira (mesec 1-12, dan 1-31), NE pogađa vek. Vek se
- * mora dodati ovde:
- *  - birthDate je uvek u prošlosti → pivot 00-30 → 20xx, 31-99 → 19xx.
- *  - expiryDate je uvek 20xx: dokumenti sa MRZ zonom koje ova app prati
- *    ne postoje iz XX veka (MRZ je ICAO standard od 1980ih, ali sa
- *    realnim rokom trajanja 5-10 god. od izdavanja u praksi je 2000+).
+ * mora dodati ovde: expiryDate je uvek 20xx (dokumenti sa MRZ zonom koje
+ * ova app prati ne postoje iz XX veka — MRZ je ICAO standard od 1980ih,
+ * ali sa realnim rokom trajanja 5-10 god. od izdavanja u praksi je 2000+).
  */
-function yymmddToIso(yymmdd: string, kind: 'birth' | 'expiry'): string {
+function yymmddToIso(yymmdd: string): string {
   if (!/^\d{6}$/.test(yymmdd)) {
     throw new Error(`Neispravan datum iz MRZ-a: "${yymmdd}"`);
   }
-  const yy = Number(yymmdd.slice(0, 2));
   const month = Number(yymmdd.slice(2, 4));
   const day = Number(yymmdd.slice(4, 6));
-  const century = kind === 'birth' ? (yy <= 30 ? 2000 : 1900) : 2000;
+  const yy = Number(yymmdd.slice(0, 2));
 
-  const date = new Date(Date.UTC(century + yy, month - 1, day));
+  const date = new Date(Date.UTC(2000 + yy, month - 1, day));
   if (Number.isNaN(date.getTime())) {
     throw new Error(`Neispravan datum iz MRZ-a: "${yymmdd}"`);
   }
@@ -122,7 +119,6 @@ function mapParsedToDocumentData(parsed: ParseResult, mrzType: MrzDocumentType):
   const documentNumber = requireField(parsed.fields, 'documentNumber');
   const expirationDate = requireField(parsed.fields, 'expirationDate');
   const nationality = parsed.fields.nationality ?? undefined;
-  const birthDateRaw = parsed.fields.birthDate ?? undefined;
 
   return {
     type: mrzTypeToDocumentType(mrzType),
@@ -130,8 +126,7 @@ function mapParsedToDocumentData(parsed: ParseResult, mrzType: MrzDocumentType):
     firstName,
     lastName,
     nationality,
-    birthDate: birthDateRaw != null ? yymmddToIso(birthDateRaw, 'birth') : undefined,
-    expiryDate: yymmddToIso(expirationDate, 'expiry'),
+    expiryDate: yymmddToIso(expirationDate),
     createdAt: Date.now(),
   };
 }
@@ -360,7 +355,6 @@ export default function ScanScreen({ navigation }: ScreenProps<'ScanDocument'>) 
                 <Field label="Ime" value={documentData.firstName} />
                 <Field label="Prezime" value={documentData.lastName} />
                 <Field label="Državljanstvo" value={documentData.nationality ?? '—'} />
-                <Field label="Datum rođenja" value={formatDate(documentData.birthDate)} />
                 <Field label="Datum isteka" value={formatDate(documentData.expiryDate)} />
 
                 {error != null && <Text style={styles.errorText}>{error}</Text>}

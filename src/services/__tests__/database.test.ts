@@ -30,7 +30,6 @@ const SAMPLE_DOC: DocumentData = {
   firstName: 'MARKO',
   lastName: 'PETROVIC',
   nationality: 'SRB',
-  birthDate: '1985-01-01T00:00:00.000Z',
   expiryDate: '2030-01-01T00:00:00.000Z',
   createdAt: 1720000000000,
 };

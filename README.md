@@ -32,11 +32,14 @@ Detaljna arhitektura, bezbednosne invarijante i konvencije razvoja su u
   ML Kit OCR → normalizacija → `mrz` parsing → potvrda → `saveDocument`),
   sa ugrađenim debug prikazom toka za dijagnostiku na uređaju
 - ✅ Modul 6: manuelni unos — `src/services/documentValidation.ts` (čista
-  validaciona funkcija, 18 Jest testova) + `ManualEntryScreen` (izbor tipa
+  validaciona funkcija, 15 Jest testova) + `ManualEntryScreen` (izbor tipa
   dokumenta, tekstualna polja, `@react-native-community/datetimepicker` za
-  datume) → isti `DocumentData` i isti `saveDocument` kao ScanScreen, za
-  dokumente bez MRZ zone i strane dokumente (vozačka, oružni list, platna
+  datum isteka) → isti `DocumentData` i isti `saveDocument` kao ScanScreen,
+  za dokumente bez MRZ zone i strane dokumente (vozačka, oružni list, platna
   kartica — koja čuva SAMO poslednje 4 cifre)
+- ✅ Minimizacija podataka: `birthDate` uklonjen iz `DocumentData` — app ga
+  nigde funkcionalno ne koristi, isti princip po kom se JMBG već odbacuje
+  na izvoru (v. "Minimizacija podataka" u [CLAUDE.md](./CLAUDE.md))
 - Sledeće: Modul 7 (lista/detalji dokumenata)
 
 ## Tehnologije
@@ -171,11 +174,11 @@ dokazuju:
 `src/services/documentValidation.ts` je čista funkcija (bez UI/native
 zavisnosti) koja proverava formu manuelnog unosa (modul 6) pre nego što
 `ManualEntryScreen` pozove `saveDocument` — obavezna polja, `expiryDate`
-obavezan i validan, `birthDate` ne sme biti u budućnosti, a za
-`platna_kartica` broj mora biti tačno 4 cifre (čuvaju se ISKLJUČIVO poslednje
-4 cifre, nikad pun broj kartice — bezbednosna odluka). Jest testovi
-(`documentValidation.test.ts`) pokrivaju sva ova pravila uključujući granične
-slučajeve (datum rođenja tačno "sada", 3 vs. 4 vs. 16 cifara kartice).
+obavezan i validan, a za `platna_kartica` broj mora biti tačno 4 cifre
+(čuvaju se ISKLJUČIVO poslednje 4 cifre, nikad pun broj kartice —
+bezbednosna odluka). Jest testovi (`documentValidation.test.ts`) pokrivaju
+sva ova pravila uključujući granične slučajeve (3 vs. 4 vs. 16 cifara
+kartice).
 `ManualEntryScreen` sam je čist UI sloj (state + `DateTimePicker`) koji poziva
 istu `saveDocument` funkciju kao ScanScreen — verifikacija na uređaju:
 Home → **Unesi ručno** → popuniti formu → **Sačuvaj** → proveriti kroz

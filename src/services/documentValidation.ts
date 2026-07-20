@@ -16,7 +16,6 @@ export interface ManualEntryInput {
   lastName: string;
   /** '' ako polje nije popunjeno — opciono polje u DocumentData. */
   nationality: string;
-  birthDate: Date | null;
   expiryDate: Date | null;
 }
 
@@ -24,7 +23,6 @@ export type ManualEntryField =
   | 'documentNumber'
   | 'firstName'
   | 'lastName'
-  | 'birthDate'
   | 'expiryDate';
 
 export type ManualEntryErrors = Partial<Record<ManualEntryField, string>>;
@@ -35,15 +33,8 @@ export type ManualEntryErrors = Partial<Record<ManualEntryField, string>>;
  */
 export const CARD_NUMBER_DIGITS = 4;
 
-/**
- * Proverava formu pre čuvanja. `now` je injektovan (podrazumevano trenutno
- * vreme) da bi test za "birthDate ne sme biti u budućnosti" bio determinisan
- * bez oslanjanja na sistemski sat u trenutku izvršavanja testa.
- */
-export function validateManualEntry(
-  input: ManualEntryInput,
-  now: Date = new Date(),
-): ManualEntryErrors {
+/** Proverava formu pre čuvanja. */
+export function validateManualEntry(input: ManualEntryInput): ManualEntryErrors {
   const errors: ManualEntryErrors = {};
 
   const documentNumber = input.documentNumber.trim();
@@ -62,10 +53,6 @@ export function validateManualEntry(
 
   if (input.lastName.trim() === '') {
     errors.lastName = 'Prezime je obavezno.';
-  }
-
-  if (input.birthDate != null && input.birthDate.getTime() > now.getTime()) {
-    errors.birthDate = 'Datum rođenja ne sme biti u budućnosti.';
   }
 
   if (input.expiryDate == null || Number.isNaN(input.expiryDate.getTime())) {
@@ -93,7 +80,6 @@ export function buildDocumentData(input: ManualEntryInput): DocumentData {
     firstName: input.firstName.trim(),
     lastName: input.lastName.trim(),
     nationality: nationality === '' ? undefined : nationality,
-    birthDate: input.birthDate != null ? input.birthDate.toISOString() : undefined,
     expiryDate: (input.expiryDate as Date).toISOString(),
     createdAt: Date.now(),
   };

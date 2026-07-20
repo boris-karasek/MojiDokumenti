@@ -62,6 +62,8 @@ async function initDatabase(): Promise<SQLiteDatabase> {
  * nego što dekriptovan sadržaj napusti ovaj modul kao DocumentData, moramo
  * proveriti da ima očekivana polja. Bez ovoga bi neispravan/oštećen zapis
  * (npr. iz buduće migracije) mogao proći kroz sistem kao validan dokument.
+ * Namerno se NE proveravaju nepoznata/dodatna polja — model se sme širiti,
+ * ova provera je donja granica, ne strogo poklapanje oblika.
  */
 function isDocumentData(value: unknown): value is DocumentData {
   if (typeof value !== 'object' || value == null) return false;
@@ -74,8 +76,7 @@ function isDocumentData(value: unknown): value is DocumentData {
     typeof v.lastName === 'string' &&
     typeof v.expiryDate === 'string' &&
     typeof v.createdAt === 'number' &&
-    (v.nationality === undefined || typeof v.nationality === 'string') &&
-    (v.birthDate === undefined || typeof v.birthDate === 'string')
+    (v.nationality === undefined || typeof v.nationality === 'string')
   );
 }
 
