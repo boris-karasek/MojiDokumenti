@@ -38,14 +38,19 @@ komentarima, jer kod ulazi u tekst rada.
   prvog pokušaja; sintetički uzorci (generator) takođe prolaze.
 - ✅ **Modul 6 — manuelni unos**: `src/services/documentValidation.ts`
   (čista validaciona funkcija bez UI zavisnosti — obavezna polja, expiryDate
-  obavezan, birthDate ne sme biti u budućnosti, platna kartica tačno 4
-  cifre, 18 Jest testova) + `src/screens/ManualEntryScreen.tsx` (izbor
-  `DocumentType`, tekstualna polja, datumi preko
-  `@react-native-community/datetimepicker`) → proizvodi isti `DocumentData`
-  oblik i zove isti `saveDocument` kao ScanScreen. Platna kartica čuva
-  ISKLJUČIVO poslednje 4 cifre (nikad pun broj, ni šifrovan) — bezbednosna
-  odluka. `app.json` dobio config plugin za datetimepicker — **zahteva nov
-  native build** ako je dev build instaliran pre ovog modula.
+  obavezan, platna kartica tačno 4 cifre, 15 Jest testova) +
+  `src/screens/ManualEntryScreen.tsx` (izbor `DocumentType`, tekstualna
+  polja, datum isteka preko `@react-native-community/datetimepicker`) →
+  proizvodi isti `DocumentData` oblik i zove isti `saveDocument` kao
+  ScanScreen. Platna kartica čuva ISKLJUČIVO poslednje 4 cifre (nikad pun
+  broj, ni šifrovan) — bezbednosna odluka. `app.json` dobio config plugin
+  za datetimepicker — **zahteva nov native build** ako je dev build
+  instaliran pre ovog modula.
+- ✅ **Minimizacija podataka**: `birthDate` uklonjen iz `DocumentData` —
+  app ga nigde funkcionalno ne koristi (ni notifikacije ni prikaz hitnosti
+  ne zavise od njega). Isti princip po kom se JMBG već odbacuje na izvoru.
+  MRZ i dalje sadrži datum rođenja (deo ICAO standarda), samo se više ne
+  mapira u model koji se šifruje i čuva — v. "Minimizacija podataka" ispod.
 - Sledeće: 7. lista/detalji → 8. lokalne notifikacije → 9. Firebase Auth +
   Firestore sync → 10. QR prenos ključa → 11. biometrija
 
@@ -193,8 +198,7 @@ stižu preko Metro-a.
   ne menjati OCR stack.
 - `mrz` paket NE pogađa vek datuma: `parseDate` u paketu samo validira
   YYMMDD (mesec 1-12, dan 1-31) i vraća sirov string, vek ostaje na
-  pozivaocu. U `ScanScreen.tsx` (`yymmddToIso`): birthDate koristi pivot
-  00-30→20xx / 31-99→19xx (uvek u prošlosti), expiryDate je uvek 20xx
+  pozivaocu. U `ScanScreen.tsx` (`yymmddToIso`): expiryDate je uvek 20xx
   (dokumenti koje app prati praktično ne postoje iz XX veka). Ako se ikad
   pojavi realan slučaj gde ovo pogrešno pogodi vek, prvo proveriti ovde pre
   menjanja mrzNormalizer-a — normalizator ne dira datume, samo linije.
@@ -245,8 +249,26 @@ Firestore/SQLite zapis: `{ id, encrypted: EncryptedString, createdAt, userId? }`
 
 `DocumentData` (sadržaj šifrata) — vidi `src/types.ts`:
 `type` (pasos | licna_karta | vozacka | oruzni_list | platna_kartica | ostalo),
-`documentNumber`, `firstName`, `lastName`, `nationality?`, `birthDate?`,
+`documentNumber`, `firstName`, `lastName`, `nationality?`,
 `expiryDate` (ISO string — osnova za notifikacije), `createdAt` (epoch ms).
+
+## Minimizacija podataka
+
+Čuva se SAMO ono što aplikaciji funkcionalno treba (podsetnici, prikaz) ili
+što korisnik svesno unese — ne sve što izvor podataka (MRZ, forma) nudi.
+
+- **JMBG**: MRZ lične karte ga ne sadrži direktno, ali se javlja unutar
+  broja dokumenta/opcionih polja kod nekih formata — odbačen na izvoru
+  (nikad se ne mapira u `DocumentData`).
+- **birthDate**: MRZ (i pasoš i lična karta) ga sadrži kao standardno ICAO
+  polje, ali app ga nigde funkcionalno ne koristi (notifikacije i prikaz
+  hitnosti zavise isključivo od `expiryDate`) — odbačen na izvoru, i u
+  `ScanScreen.tsx` mapiranju i u `ManualEntryScreen.tsx` formi.
+- **platna_kartica**: broj kartice se čuva ISKLJUČIVO kao poslednje 4 cifre
+  (regex u `documentValidation.ts`) — nikad pun broj, ni šifrovan.
+
+Princip: dodavanje polja u `DocumentData` je svesna odluka, ne "MRZ/forma ga
+ima pa ga čuvamo".
 
 ## Posebni zahtevi
 

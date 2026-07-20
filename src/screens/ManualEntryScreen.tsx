@@ -53,7 +53,7 @@ const msg = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const formatDate = (d: Date | null): string =>
   d == null ? 'Izaberi datum' : d.toISOString().slice(0, 10);
 
-type DatePickerTarget = 'birthDate' | 'expiryDate' | null;
+type DatePickerTarget = 'expiryDate' | null;
 
 export default function ManualEntryScreen({ navigation }: ScreenProps<'ManualEntry'>) {
   const [type, setType] = useState<DocumentType>('vozacka');
@@ -61,7 +61,6 @@ export default function ManualEntryScreen({ navigation }: ScreenProps<'ManualEnt
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [nationality, setNationality] = useState('');
-  const [birthDate, setBirthDate] = useState<Date | null>(null);
   const [expiryDate, setExpiryDate] = useState<Date | null>(null);
   const [datePickerTarget, setDatePickerTarget] = useState<DatePickerTarget>(null);
 
@@ -93,7 +92,6 @@ export default function ManualEntryScreen({ navigation }: ScreenProps<'ManualEnt
     setFirstName('');
     setLastName('');
     setNationality('');
-    setBirthDate(null);
     setExpiryDate(null);
     setErrors({});
     setSaveError(null);
@@ -105,10 +103,7 @@ export default function ManualEntryScreen({ navigation }: ScreenProps<'ManualEnt
       const target = datePickerTarget;
       setDatePickerTarget(Platform.OS === 'ios' ? target : null);
       if (selected == null) return;
-      if (target === 'birthDate') {
-        setBirthDate(selected);
-        clearFieldError('birthDate');
-      } else if (target === 'expiryDate') {
+      if (target === 'expiryDate') {
         setExpiryDate(selected);
         clearFieldError('expiryDate');
       }
@@ -123,7 +118,6 @@ export default function ManualEntryScreen({ navigation }: ScreenProps<'ManualEnt
       firstName,
       lastName,
       nationality,
-      birthDate,
       expiryDate,
     };
 
@@ -142,7 +136,7 @@ export default function ManualEntryScreen({ navigation }: ScreenProps<'ManualEnt
     } finally {
       setSaving(false);
     }
-  }, [type, documentNumber, firstName, lastName, nationality, birthDate, expiryDate]);
+  }, [type, documentNumber, firstName, lastName, nationality, expiryDate]);
 
   if (savedId != null) {
     return (
@@ -228,13 +222,6 @@ export default function ManualEntryScreen({ navigation }: ScreenProps<'ManualEnt
       />
 
       <DateField
-        label="Datum rođenja (opciono)"
-        value={birthDate}
-        error={errors.birthDate}
-        onPress={() => setDatePickerTarget('birthDate')}
-      />
-
-      <DateField
         label="Datum isteka"
         value={expiryDate}
         error={errors.expiryDate}
@@ -243,12 +230,9 @@ export default function ManualEntryScreen({ navigation }: ScreenProps<'ManualEnt
 
       {datePickerTarget != null && (
         <DateTimePicker
-          value={
-            (datePickerTarget === 'birthDate' ? birthDate : expiryDate) ?? new Date()
-          }
+          value={expiryDate ?? new Date()}
           mode="date"
           display="default"
-          maximumDate={datePickerTarget === 'birthDate' ? new Date() : undefined}
           onChange={handleDateChange}
         />
       )}

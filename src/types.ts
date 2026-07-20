@@ -21,6 +21,12 @@ export type DocumentType =
  * Strukturirani podaci JEDNOG dokumenta — tačno ono što se šifruje.
  * VAŽNO: datumi su ISO stringovi, ne Date objekti!
  * (JSON.parse ne vraća Date — naučena lekcija iz POC faze.)
+ *
+ * Politika minimizacije podataka: čuva se SAMO ono što aplikaciji
+ * funkcionalno treba (podsetnici, prikaz) ili što korisnik svesno unese.
+ * JMBG i datum rođenja se odbacuju na izvoru iako ih MRZ zona sadrži —
+ * app ih nigde ne koristi (ni za notifikacije ni za prikaz hitnosti).
+ * Broj platne kartice se čuva SAMO kao poslednje 4 cifre, nikad pun broj.
  */
 export interface DocumentData {
   type: DocumentType;
@@ -29,8 +35,6 @@ export interface DocumentData {
   lastName: string;
   /** ISO 3166-1 alpha-3, npr. 'SRB' — opciono za dokumenta bez MRZ */
   nationality?: string;
-  /** ISO 8601 string, npr. '1985-01-01T00:00:00.000Z' */
-  birthDate?: string;
   /** ISO 8601 string — ključno polje za podsetnike */
   expiryDate: string;
   /** epoch ms */
