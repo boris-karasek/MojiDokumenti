@@ -1,7 +1,7 @@
 // In-memory zamena za expo-sqlite — samo za testove!
 // Ne implementira pravi SQL parser; prepoznaje TAČNO upite koje koristi
 // src/services/database.ts (CREATE TABLE / INSERT / SELECT sve /
-// SELECT po id / DELETE po id).
+// SELECT po id / UPDATE po id / DELETE po id).
 
 let rows = []; // { id, encrypted, createdAt }
 
@@ -22,6 +22,12 @@ class MockSQLiteDatabase {
       rows.push({ id, encrypted, createdAt });
       return { changes: 1, lastInsertRowId: rows.length };
     }
+    if (/^\s*UPDATE documents SET encrypted/i.test(source)) {
+      const [encrypted, id] = args;
+      const row = rows.find((r) => r.id === id);
+      if (row != null) row.encrypted = encrypted;
+      return { changes: row != null ? 1 : 0, lastInsertRowId: 0 };
+    }
     if (/^\s*DELETE FROM documents/i.test(source)) {
       const [id] = args;
       const before = rows.length;
@@ -35,10 +41,10 @@ class MockSQLiteDatabase {
     const args = normalizeParams(params);
     if (/WHERE\s+id\s*=\s*\?/i.test(source)) {
       const [id] = args;
-      return rows.filter((r) => r.id === id);
+      return rows.filter((r) => r.id === id).map((r) => ({ ...r }));
     }
     if (/^\s*SELECT .* FROM documents/i.test(source)) {
-      return [...rows].sort((a, b) => b.createdAt - a.createdAt);
+      return [...rows].sort((a, b) => b.createdAt - a.createdAt).map((r) => ({ ...r }));
     }
     throw new Error(`Mock expo-sqlite: nepodržan upit u getAllAsync: ${source}`);
   }
