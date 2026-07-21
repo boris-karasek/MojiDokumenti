@@ -127,7 +127,6 @@ function mapParsedToDocumentData(parsed: ParseResult, mrzType: MrzDocumentType):
     lastName,
     nationality,
     expiryDate: yymmddToIso(expirationDate),
-    createdAt: Date.now(),
   };
 }
 

@@ -16,7 +16,8 @@ komentarima, jer kod ulazi u tekst rada.
 
 - ✅ Modul 1: struktura projekta + navigacija
 - ✅ Modul 2: crypto modul + 12 Jest testova + CryptoTestScreen (verifikacija na uređaju)
-- ✅ Modul 3: lokalna baza (expo-sqlite) + repository sloj (`src/services/database.ts`) + 8 Jest testova
+- ✅ Modul 3: lokalna baza (expo-sqlite) + repository sloj (`src/services/database.ts` —
+  `saveDocument`, `getAllDocuments`, `getDocument`, `deleteDocument`) + 8 Jest testova
 - ✅ Modul 4: MRZ generator (`tools/mrz-generator/`, samostalan CLI alat izvan mobilne app) —
   generiše ISKLJUČIVO srpska dokumenta (pasoš TD3 + lična karta TD1, uvek
   `nationality: SRB`), numerički brojevi dokumenata (bez OCR 0/O dvosmislenosti),
@@ -50,7 +51,11 @@ komentarima, jer kod ulazi u tekst rada.
   app ga nigde funkcionalno ne koristi (ni notifikacije ni prikaz hitnosti
   ne zavise od njega). Isti princip po kom se JMBG već odbacuje na izvoru.
   MRZ i dalje sadrži datum rođenja (deo ICAO standarda), samo se više ne
-  mapira u model koji se šifruje i čuva — v. "Minimizacija podataka" ispod.
+  mapira u model koji se šifruje i čuva. Drugim prolazom uklonjen i
+  `createdAt` iz `DocumentData` — ista vrednost je već postojala kao plain
+  SQLite kolona (invarijanta 3 je dopušta), pa je enkriptovana kopija bila
+  čist višak bez funkcionalne koristi; `saveDocument` (`database.ts`) sad
+  sam generiše `createdAt` za tu kolonu. V. "Minimizacija podataka" ispod.
 - Sledeće: 7. lista/detalji → 8. lokalne notifikacije → 9. Firebase Auth +
   Firestore sync → 10. QR prenos ključa → 11. biometrija
 
@@ -245,12 +250,18 @@ stižu preko Metro-a.
 
 ## Model podataka
 
-Firestore/SQLite zapis: `{ id, encrypted: EncryptedString, createdAt, userId? }`
+SQLite red (`documents` tabela, `src/services/database.ts`): `{ id, encrypted, createdAt }`.
+`createdAt` je plain (epoch ms) — dozvoljeno invarijantom 3, služi za sortiranje
+(`ORDER BY createdAt DESC` u `getAllDocuments`) i generiše ga sam `saveDocument`
+(ne dolazi od pozivaoca). Firestore oblik zapisa (isti red + plain `userId` za
+security rules, po istoj invarijanti 3) je van obima do modula 9 — nije još
+implementiran, samo rezervisan.
 
 `DocumentData` (sadržaj šifrata) — vidi `src/types.ts`:
 `type` (pasos | licna_karta | vozacka | oruzni_list | platna_kartica | ostalo),
 `documentNumber`, `firstName`, `lastName`, `nationality?`,
-`expiryDate` (ISO string — osnova za notifikacije), `createdAt` (epoch ms).
+`expiryDate` (ISO string — osnova za notifikacije). `createdAt` NIJE deo ovog
+objekta (v. "Minimizacija podataka") — postoji samo kao plain SQLite kolona.
 
 ## Minimizacija podataka
 
@@ -266,6 +277,11 @@ Firestore/SQLite zapis: `{ id, encrypted: EncryptedString, createdAt, userId? }`
   `ScanScreen.tsx` mapiranju i u `ManualEntryScreen.tsx` formi.
 - **platna_kartica**: broj kartice se čuva ISKLJUČIVO kao poslednje 4 cifre
   (regex u `documentValidation.ts`) — nikad pun broj, ni šifrovan.
+- **createdAt**: metapodatak o vremenu unosa nije osetljiv sadržaj — invarijanta
+  3 ga ionako dopušta kao plain SQLite kolonu, pa nije postojao razlog da ista
+  vrednost uđe i u šifrat. Uklonjen iz `DocumentData`; `saveDocument`
+  (`database.ts`) sam generiše `createdAt` (`Date.now()`) direktno za tu
+  kolonu. Isti princip kao `birthDate`.
 
 Princip: dodavanje polja u `DocumentData` je svesna odluka, ne "MRZ/forma ga
 ima pa ga čuvamo".

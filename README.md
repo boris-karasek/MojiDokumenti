@@ -19,7 +19,8 @@ Detaljna arhitektura, bezbednosne invarijante i konvencije razvoja su u
 
 - ✅ Modul 1: struktura projekta + navigacija
 - ✅ Modul 2: crypto modul (AES-256-GCM) + 12 Jest testova (logika) + CryptoTestScreen sa 6 on-device provera (native implementacija na uređaju)
-- ✅ Modul 3: lokalna baza (`expo-sqlite`) + repository sloj + 8 Jest testova
+- ✅ Modul 3: lokalna baza (`expo-sqlite`) + repository sloj (`saveDocument`,
+  `getAllDocuments`, `getDocument`, `deleteDocument`) + 8 Jest testova
 - ✅ Modul 4: MRZ generator (`tools/mrz-generator/`, samostalan CLI alat, van mobilne app) —
   generiše ISKLJUČIVO srpska dokumenta (pasoš TD3 + lična karta TD1),
   numerički brojevi dokumenata, strukturno validan JMBG (zaseban mod-11
@@ -39,7 +40,10 @@ Detaljna arhitektura, bezbednosne invarijante i konvencije razvoja su u
   kartica — koja čuva SAMO poslednje 4 cifre)
 - ✅ Minimizacija podataka: `birthDate` uklonjen iz `DocumentData` — app ga
   nigde funkcionalno ne koristi, isti princip po kom se JMBG već odbacuje
-  na izvoru (v. "Minimizacija podataka" u [CLAUDE.md](./CLAUDE.md))
+  na izvoru. Drugim prolazom uklonjen i `createdAt` — ista vrednost je već
+  postojala kao plain SQLite kolona, pa je enkriptovana kopija bila čist
+  višak; `saveDocument` je sad sam generiše za tu kolonu
+  (v. "Minimizacija podataka" u [CLAUDE.md](./CLAUDE.md))
 - Sledeće: Modul 7 (lista/detalji dokumenata)
 
 ## Tehnologije

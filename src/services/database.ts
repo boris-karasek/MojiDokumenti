@@ -75,7 +75,6 @@ function isDocumentData(value: unknown): value is DocumentData {
     typeof v.firstName === 'string' &&
     typeof v.lastName === 'string' &&
     typeof v.expiryDate === 'string' &&
-    typeof v.createdAt === 'number' &&
     (v.nationality === undefined || typeof v.nationality === 'string')
   );
 }
@@ -90,17 +89,23 @@ async function decryptRow(row: DocumentRow): Promise<DecryptedDocument> {
 
 // --------------------------------------------------------------- repository
 
-/** Enkriptuje dokument i upisuje ga u bazu. Vraća generisani id. */
+/**
+ * Enkriptuje dokument i upisuje ga u bazu. Vraća generisani id.
+ * createdAt NIJE deo DocumentData (v. types.ts) — repository sloj je pravo
+ * mesto da odredi kad red nastaje, pa ga generiše ovde, direktno za plain
+ * SQLite kolonu (sortiranje/sync, invarijanta 3 iz CLAUDE.md).
+ */
 export async function saveDocument(data: DocumentData): Promise<string> {
   const db = await getDb();
   const id = crypto.randomUUID();
   const encrypted = await encryptObject(data);
+  const createdAt = Date.now();
 
   await db.runAsync(
     'INSERT INTO documents (id, encrypted, createdAt) VALUES (?, ?, ?)',
     id,
     encrypted,
-    data.createdAt,
+    createdAt,
   );
   return id;
 }

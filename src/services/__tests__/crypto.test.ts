@@ -35,7 +35,6 @@ const SAMPLE_DOC: DocumentData = {
   lastName: 'PETROVIC',
   nationality: 'SRB',
   expiryDate: '2030-01-01T00:00:00.000Z',
-  createdAt: 1720000000000,
 };
 
 beforeEach(() => {
