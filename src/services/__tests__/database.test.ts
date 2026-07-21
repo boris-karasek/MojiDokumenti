@@ -31,7 +31,6 @@ const SAMPLE_DOC: DocumentData = {
   lastName: 'PETROVIC',
   nationality: 'SRB',
   expiryDate: '2030-01-01T00:00:00.000Z',
-  createdAt: 1720000000000,
 };
 
 const OTHER_DOC: DocumentData = {
@@ -40,7 +39,6 @@ const OTHER_DOC: DocumentData = {
   firstName: 'ANA',
   lastName: 'JOVANOVIC',
   expiryDate: '2028-06-01T00:00:00.000Z',
-  createdAt: 1730000000000, // kasnije od SAMPLE_DOC
 };
 
 beforeEach(() => {
@@ -57,7 +55,9 @@ describe('saveDocument / getDocument', () => {
     const doc = await getDocument(id);
     expect(doc).not.toBeNull();
     expect(doc!.id).toBe(id);
-    expect(doc!.createdAt).toBe(SAMPLE_DOC.createdAt);
+    // createdAt više nije deo DocumentData — saveDocument ga sam generiše
+    // za plain SQLite kolonu (v. database.ts).
+    expect(typeof doc!.createdAt).toBe('number');
     expect(doc!.data).toEqual(SAMPLE_DOC);
   });
 
@@ -68,8 +68,14 @@ describe('saveDocument / getDocument', () => {
 
 describe('getAllDocuments', () => {
   test('vraća sve dokumente sortirane po createdAt (najnoviji prvi)', async () => {
-    const id1 = await saveDocument(SAMPLE_DOC); // stariji
-    const id2 = await saveDocument(OTHER_DOC); // noviji
+    // saveDocument sam generiše createdAt (Date.now()) — mockovano da se
+    // ne oslanjamo na stvarni protok vremena između dva await poziva.
+    const nowSpy = jest.spyOn(Date, 'now');
+    nowSpy.mockReturnValueOnce(1720000000000); // stariji
+    const id1 = await saveDocument(SAMPLE_DOC);
+    nowSpy.mockReturnValueOnce(1730000000000); // noviji
+    const id2 = await saveDocument(OTHER_DOC);
+    nowSpy.mockRestore();
 
     const all = await getAllDocuments();
     expect(all).toHaveLength(2);

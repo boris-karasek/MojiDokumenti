@@ -115,7 +115,6 @@ describe('buildDocumentData', () => {
     expect(data.lastName).toBe('PETROVIĆ');
     expect(data.nationality).toBeUndefined();
     expect(data.expiryDate).toBe('2029-01-01T00:00:00.000Z');
-    expect(typeof data.createdAt).toBe('number');
   });
 
   test('trimuje razmake iz tekstualnih polja', () => {

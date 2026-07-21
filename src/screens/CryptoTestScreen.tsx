@@ -33,7 +33,6 @@ const SAMPLE_DOC: DocumentData = {
   lastName: 'PETROVIC',
   nationality: 'SRB',
   expiryDate: '2030-01-01T00:00:00.000Z',
-  createdAt: Date.now(),
 };
 
 async function runAllTests(): Promise<TestResult[]> {

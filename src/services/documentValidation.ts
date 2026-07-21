@@ -81,6 +81,5 @@ export function buildDocumentData(input: ManualEntryInput): DocumentData {
     lastName: input.lastName.trim(),
     nationality: nationality === '' ? undefined : nationality,
     expiryDate: (input.expiryDate as Date).toISOString(),
-    createdAt: Date.now(),
   };
 }

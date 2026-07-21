@@ -27,6 +27,9 @@ export type DocumentType =
  * JMBG i datum rođenja se odbacuju na izvoru iako ih MRZ zona sadrži —
  * app ih nigde ne koristi (ni za notifikacije ni za prikaz hitnosti).
  * Broj platne kartice se čuva SAMO kao poslednje 4 cifre, nikad pun broj.
+ * Vreme unosa (createdAt) NIJE deo ovog objekta — postoji već kao plain
+ * kolona u bazi (StoredDocument/DecryptedDocument), pa ne postoji razlog
+ * da ista vrednost uđe i u šifrat (v. CLAUDE.md, "Minimizacija podataka").
  */
 export interface DocumentData {
   type: DocumentType;
@@ -37,8 +40,6 @@ export interface DocumentData {
   nationality?: string;
   /** ISO 8601 string — ključno polje za podsetnike */
   expiryDate: string;
-  /** epoch ms */
-  createdAt: number;
 }
 
 // ------------------------------------------------------------- kriptografija
@@ -54,19 +55,7 @@ export type EncryptedString = string & { readonly __brand: 'EncryptedString' };
 
 // ------------------------------------------------------------------- storage
 
-/** Red u lokalnoj bazi / dokument u Firestore-u. Osetljivo je SAMO u `encrypted`. */
-export interface StoredDocument {
-  /** UUID generisan pri kreiranju */
-  id: string;
-  /** svi DocumentData podaci, šifrovani — jedini sadržajni deo zapisa */
-  encrypted: EncryptedString;
-  /** epoch ms — plain, nije osetljivo, služi za sortiranje/sync */
-  createdAt: number;
-  /** Firebase Auth UID — plain, potreban za Firestore security rules */
-  userId?: string;
-}
-
-/** StoredDocument nakon dekripcije — ono sa čim UI radi. */
+/** Red iz SQLite baze (`database.ts`) nakon dekripcije — ono sa čim UI radi. */
 export interface DecryptedDocument {
   id: string;
   data: DocumentData;
