@@ -44,7 +44,17 @@ Detaljna arhitektura, bezbednosne invarijante i konvencije razvoja su u
   postojala kao plain SQLite kolona, pa je enkriptovana kopija bila čist
   višak; `saveDocument` je sad sam generiše za tu kolonu
   (v. "Minimizacija podataka" u [CLAUDE.md](./CLAUDE.md))
-- Sledeće: Modul 7 (lista/detalji dokumenata)
+- ✅ Modul 7: lista/detalji/izmena/brisanje dokumenata — `documentStatus.ts`
+  (status hitrosti: istekao / ističe uskoro / važeći, prag 30 dana, 8 Jest
+  testova) + `updateDocument` u `database.ts` (jedan `UPDATE`, nov IV pri
+  svakoj izmeni preko `encryptObject`, 5 dodatnih testova) +
+  `DocumentListScreen` (zamenjuje `HomeScreen` kao glavni ekran — lista sa
+  `useFocusEffect` osvežavanjem, prazno stanje) + `DocumentDetailScreen`
+  (sva polja, dugmad Izmeni/Obriši) + `ManualEntryScreen` proširen opcionim
+  `documentId` (isti ekran radi unos i izmenu). `DatabaseTestScreen` uklonjen
+  — zamenjen pravim UI-jem.
+- Sledeće: Modul 8 (lokalne notifikacije — uvoze `DANI_UPOZORENJA` iz
+  `documentStatus.ts`)
 
 ## Tehnologije
 
@@ -89,9 +99,11 @@ src/navigation.ts                RootStackParamList
 src/services/crypto.ts           master ključ (Keystore) + AES-256-GCM
 src/services/database.ts         repository sloj: expo-sqlite + crypto, vraća samo DecryptedDocument
 src/services/mrzNormalizer.ts    čisti sirov OCR izlaz (K→<, dužina linije) pre mrz parsiranja — bez native zavisnosti
-src/services/documentValidation.ts  čista validacija manuelnog unosa — testabilna bez UI-ja
-src/services/__tests__/          Jest testovi crypto, database, MRZ normalizacije i manuelnog unosa
-src/screens/                     ekrani (Home, CryptoTest, DatabaseTest, ScanScreen, ManualEntryScreen, …)
+src/services/documentValidation.ts  čista validacija manuelnog unosa/izmene — testabilna bez UI-ja
+src/services/documentStatus.ts   status hitnosti (istekao/ističe uskoro/važeći), prag DANI_UPOZORENJA
+src/services/documentLabels.ts   čitljivi srpski nazivi DocumentType, deljeno između ekrana
+src/services/__tests__/          Jest testovi crypto, database, MRZ normalizacije, validacije i statusa
+src/screens/                     ekrani (DocumentListScreen, DocumentDetailScreen, CryptoTest, ScanScreen, ManualEntryScreen, …)
 __mocks__/                       Jest mape: quick-crypto → Node crypto, SecureStore → memorija, expo-sqlite → in-memory
 tools/mrz-generator/             razvojni CLI alat — generator sintetičkih MRZ zapisa (v. ispod), NIJE deo mobilne app
 ```
@@ -152,16 +164,21 @@ enkripcije.
 kolonu — enkripcija/dekripcija se dešava isključivo tu, ostatak app-a vidi
 samo `DocumentData`/`DecryptedDocument`. Jest testovi (mock baze u
 `__mocks__/expo-sqlite.js`) pokrivaju save→get roundtrip, sortiranje po
-datumu, brisanje, i da red u bazi zaista sadrži `v1:iv:ct:tag` šifrat a ne
-plaintext. **Native implementaciju i perzistenciju na uređaju** verifikuje
-`DatabaseTestScreen` (privremen, briše se u modulu 7):
+datumu, brisanje, izmenu (`updateDocument` — nov IV pri svakoj izmeni, red i
+dalje `v1:iv:ct:tag`, `createdAt` kolona nepromenjena), i da red u bazi
+zaista sadrži šifrat a ne plaintext. **Native implementaciju i perzistenciju
+na uređaju** dokazao je raniji `DatabaseTestScreen` (uklonjen u modulu 7);
+od tog modula perzistencija i CRUD se verifikuju kroz pravi UI — v. korake
+ručne verifikacije ispod.
 
-1. Home → **Lokalna baza** → **Sačuvaj test dokument** (par puta) → **Izlistaj
-   sve** → provera da su svi tu, sortirani od najnovijeg.
-2. **Obriši sve** → **Izlistaj sve** → baza prazna.
-3. Sačuvaj par test dokumenata, **prekini proces app i pokreni ponovo**, otvori ekran i
-   pritisni SAMO **Učitaj postojeće** (bez Save-a) → dokumenti se i dalje
-   pojavljuju → baza je perzistentna preko restarta.
+`src/services/documentStatus.ts` je čista funkcija koja određuje status
+hitnosti dokumenta (`istekao` / `istice_uskoro` / `vazeci`) na osnovu praga
+od `DANI_UPOZORENJA` (30) dana — poređenje je po CELIM danima (normalizacija
+na ponoć lokalnog vremena), ne po milisekundama, da rezultat ne zavisi od
+doba dana kad se proverava. Jest testovi (`documentStatus.test.ts`) pokrivaju
+granice (istekao juče, ističe danas/sutra, tačno na 30/31 dan) i sortiranje
+najhitnijih prvo. Isti prag uvozi modul 8 (lokalne notifikacije) — ne
+duplirati broj dana.
 
 `src/services/mrzNormalizer.ts` čisti sirov OCR izlaz pre `mrz` paketa — bez
 native zavisnosti, pa je u potpunosti testabilan na laptopu (nema poseban
@@ -176,20 +193,16 @@ dokazuju:
   pravi `mrz` paket sa `valid: true` (end-to-end dokaz, ne samo unit nivo).
 
 `src/services/documentValidation.ts` je čista funkcija (bez UI/native
-zavisnosti) koja proverava formu manuelnog unosa (modul 6) pre nego što
-`ManualEntryScreen` pozove `saveDocument` — obavezna polja, `expiryDate`
-obavezan i validan, a za `platna_kartica` broj mora biti tačno 4 cifre
-(čuvaju se ISKLJUČIVO poslednje 4 cifre, nikad pun broj kartice —
-bezbednosna odluka). Jest testovi (`documentValidation.test.ts`) pokrivaju
-sva ova pravila uključujući granične slučajeve (3 vs. 4 vs. 16 cifara
-kartice).
-`ManualEntryScreen` sam je čist UI sloj (state + `DateTimePicker`) koji poziva
-istu `saveDocument` funkciju kao ScanScreen — verifikacija na uređaju:
-Home → **Unesi ručno** → popuniti formu → **Sačuvaj** → proveriti kroz
-`DatabaseTestScreen` da je zapis stvarno upisan.
+zavisnosti) koja proverava formu manuelnog unosa I izmene (moduli 6, 7) pre
+nego što `ManualEntryScreen` pozove `saveDocument`/`updateDocument` —
+obavezna polja, `expiryDate` obavezan i validan, a za `platna_kartica` broj
+mora biti tačno 4 cifre (čuvaju se ISKLJUČIVO poslednje 4 cifre, nikad pun
+broj kartice — bezbednosna odluka). Jest testovi (`documentValidation.test.ts`)
+pokrivaju sva ova pravila uključujući granične slučajeve (3 vs. 4 vs. 16
+cifara kartice).
 
 Kamera, ML Kit OCR i `ScanScreen` su native/UI sloj koji Jest ne pokriva —
-verifikuje se ručno na uređaju preko `HomeScreen` → **MRZ skeniranje**:
+verifikuje se ručno na uređaju preko **Skeniraj** dugmeta na glavnom ekranu:
 
 1. Prva poseta ekranu traži dozvolu za kameru; testirati i odbijanje
    (poruka + dugme koje vodi u podešavanja uređaja).
@@ -199,10 +212,28 @@ verifikuje se ručno na uređaju preko `HomeScreen` → **MRZ skeniranje**:
 3. Uslikati nešto bez MRZ zone / loše osvetljeno → "Skeniranje nije uspelo" +
    "Pokušaj ponovo", ništa se ne sme upisati u bazu.
 4. **Debug** prekidač (gornji desni ugao ekrana) posle jednog pokušaja
-   prikazuje sirov OCR tekst → kandidat linije → normalizovane linije → 
+   prikazuje sirov OCR tekst → kandidat linije → normalizovane linije →
    parsirana polja — koristi se i za evaluaciju OCR pouzdanosti u radu.
-5. Na preview ekranu **Sačuvaj** → proveriti kroz `DatabaseTestScreen` da je
-   dokument stvarno upisan i da polja odgovaraju MRZ zoni.
+5. Na preview ekranu **Sačuvaj** → proveriti da se dokument pojavi na
+   glavnoj listi.
+
+### Lista, detalji, izmena i brisanje dokumenata (modul 7)
+
+`DocumentListScreen` (glavni ekran, ruta `Home`) i `DocumentDetailScreen` su
+UI/native sloj koji Jest ne pokriva direktno (logika iza njih — status
+hitnosti i validacija — jeste, v. gore). Ručna verifikacija na uređaju:
+
+1. Prazna baza → glavni ekran prikazuje "Nemaš sačuvanih dokumenata" i dugmad
+   **Skeniraj**/**Unesi ručno**.
+2. Skeniraj dokument (ili sačuvaj kroz **Unesi ručno**) → vratiti se na
+   glavni ekran → novi dokument je odmah na listi, BEZ potrebe za ručnim
+   osvežavanjem (`useFocusEffect`, v. "Naučene lekcije" u CLAUDE.md).
+3. Tapnuti na stavku liste → `DocumentDetailScreen` prikazuje sva polja
+   (uključujući `nationality` ako je postavljena) + status hitnosti.
+4. **Izmeni** → promeniti polje → **Sačuvaj izmene** → potvrditi u dijalogu →
+   vratiti se na detalje/listu → izmena je vidljiva bez ručnog osvežavanja.
+5. **Obriši** → `Alert.alert` traži potvrdu → posle potvrde dokument nestaje
+   sa liste.
 
 ### Kontinuirana integracija
 

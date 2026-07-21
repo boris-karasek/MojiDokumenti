@@ -14,9 +14,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { getOrCreateMasterKey } from './src/services/crypto';
 import type { RootStackParamList } from './src/navigation';
-import HomeScreen from './src/screens/HomeScreen';
+import DocumentListScreen from './src/screens/DocumentListScreen';
+import DocumentDetailScreen from './src/screens/DocumentDetailScreen';
 import CryptoTestScreen from './src/screens/CryptoTestScreen';
-import DatabaseTestScreen from './src/screens/DatabaseTestScreen';
 import ScanScreen from './src/screens/ScanScreen';
 import ManualEntryScreen from './src/screens/ManualEntryScreen';
 
@@ -55,16 +55,16 @@ export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator>
-        <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Home" component={DocumentListScreen} options={{ headerShown: false }} />
+        <Stack.Screen
+          name="DocumentDetails"
+          component={DocumentDetailScreen}
+          options={{ title: 'Detalji dokumenta' }}
+        />
         <Stack.Screen
           name="CryptoTest"
           component={CryptoTestScreen}
           options={{ title: 'Crypto testovi' }}
-        />
-        <Stack.Screen
-          name="DatabaseTest"
-          component={DatabaseTestScreen}
-          options={{ title: 'Baza — test' }}
         />
         <Stack.Screen
           name="ScanDocument"
