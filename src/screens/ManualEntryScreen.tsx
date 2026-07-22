@@ -1,18 +1,22 @@
 /**
- * ManualEntryScreen — ručni unos dokumenta, bez kamere/OCR-a (modul 6).
+ * ManualEntryScreen — ručni unos I izmena dokumenta, bez kamere/OCR-a
+ * (unos: modul 6, izmena: modul 7).
  *
  * Postoji jer automatsko MRZ čitanje (modul 5) pokriva SAMO srpski
  * pasoš (TD3) i ličnu kartu (TD1) — v. CLAUDE.md, sekcija "Obim". Svi ostali
  * slučajevi (strani dokumenti, vozačka, oružni list, platna kartica — bilo
- * koji dokument bez MRZ zone) prolaze kroz ovu formu.
+ * koji dokument bez MRZ zone) prolaze kroz ovu formu, kao i izmena BILO KOG
+ * već sačuvanog dokumenta (uključujući skenirane — v. napomena kod handleSave).
  *
- * Proizvodi TAČNO isti DocumentData objekat kao ScanScreen i čuva ga kroz
- * isti saveDocument (database.ts) — jedina razlika je izvor podataka
- * (tastatura + date picker umesto kamere). Validacija je izdvojena u
- * documentValidation.ts da bude testabilna bez UI-ja.
+ * Isti ekran radi oba posla (route.params?.documentId odsutan → nov unos,
+ * prisutan → izmena) da se izbegne duplirana forma/validacija/state. Pri
+ * unosu proizvodi TAČNO isti DocumentData objekat kao ScanScreen i čuva ga
+ * kroz saveDocument; pri izmeni učitava postojeći dokument (getDocument) i
+ * čuva kroz updateDocument (database.ts) — validacija je ista u oba slučaja
+ * (documentValidation.ts), testabilna bez UI-ja.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -22,6 +26,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Platform,
+  Alert,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -33,20 +38,10 @@ import {
   type ManualEntryInput,
   type ManualEntryErrors,
 } from '../services/documentValidation';
-import { saveDocument } from '../services/database';
+import { saveDocument, getDocument, updateDocument } from '../services/database';
+import { DOCUMENT_TYPE_LABELS, DOCUMENT_TYPES } from '../services/documentLabels';
 import type { DocumentType } from '../types';
 import type { ScreenProps } from '../navigation';
-
-const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
-  pasos: 'Pasoš',
-  licna_karta: 'Lična karta',
-  vozacka: 'Vozačka dozvola',
-  oruzni_list: 'Oružni list',
-  platna_kartica: 'Platna kartica',
-  ostalo: 'Ostalo',
-};
-
-const DOCUMENT_TYPES = Object.keys(DOCUMENT_TYPE_LABELS) as DocumentType[];
 
 const msg = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -55,7 +50,10 @@ const formatDate = (d: Date | null): string =>
 
 type DatePickerTarget = 'expiryDate' | null;
 
-export default function ManualEntryScreen({ navigation }: ScreenProps<'ManualEntry'>) {
+export default function ManualEntryScreen({ navigation, route }: ScreenProps<'ManualEntry'>) {
+  const documentId = route.params?.documentId;
+  const isEditMode = documentId != null;
+
   const [type, setType] = useState<DocumentType>('vozacka');
   const [documentNumber, setDocumentNumber] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -68,6 +66,41 @@ export default function ManualEntryScreen({ navigation }: ScreenProps<'ManualEnt
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
+
+  const [loadingDoc, setLoadingDoc] = useState(isEditMode);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    navigation.setOptions({ title: isEditMode ? 'Izmena dokumenta' : 'Ručni unos dokumenta' });
+  }, [navigation, isEditMode]);
+
+  useEffect(() => {
+    if (documentId == null) return;
+    let active = true;
+    getDocument(documentId)
+      .then((doc) => {
+        if (!active) return;
+        if (doc == null) {
+          setLoadError('Dokument nije pronađen.');
+          return;
+        }
+        setType(doc.data.type);
+        setDocumentNumber(doc.data.documentNumber);
+        setFirstName(doc.data.firstName);
+        setLastName(doc.data.lastName);
+        setNationality(doc.data.nationality ?? '');
+        setExpiryDate(new Date(doc.data.expiryDate));
+      })
+      .catch((e: unknown) => {
+        if (active) setLoadError(msg(e));
+      })
+      .finally(() => {
+        if (active) setLoadingDoc(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [documentId]);
 
   const clearFieldError = useCallback((field: keyof ManualEntryErrors) => {
     setErrors((prev) => {
@@ -111,7 +144,28 @@ export default function ManualEntryScreen({ navigation }: ScreenProps<'ManualEnt
     [datePickerTarget, clearFieldError],
   );
 
-  const handleSave = useCallback(async () => {
+  const persist = useCallback(
+    async (input: ManualEntryInput) => {
+      const data = buildDocumentData(input);
+      setSaving(true);
+      try {
+        if (isEditMode) {
+          await updateDocument(documentId, data);
+          setSavedId(documentId);
+        } else {
+          const id = await saveDocument(data);
+          setSavedId(id);
+        }
+      } catch (e) {
+        setSaveError(msg(e));
+      } finally {
+        setSaving(false);
+      }
+    },
+    [isEditMode, documentId],
+  );
+
+  const handleSave = useCallback(() => {
     const input: ManualEntryInput = {
       type,
       documentNumber,
@@ -126,32 +180,60 @@ export default function ManualEntryScreen({ navigation }: ScreenProps<'ManualEnt
     setSaveError(null);
     if (hasErrors(validationErrors)) return;
 
-    setSaving(true);
-    try {
-      const data = buildDocumentData(input);
-      const id = await saveDocument(data);
-      setSavedId(id);
-    } catch (e) {
-      setSaveError(msg(e));
-    } finally {
-      setSaving(false);
+    // Za izmenu tražimo eksplicitnu potvrdu: skenirani dokument je prošao
+    // ICAO check-digit pri unosu (mrz.parse), ali ovde korisnik ručno kuca
+    // izmenjene vrednosti — nema te zaštite od typo-a, pa je dodatna
+    // potvrda jednostavna kočnica (isti obrazac kao potvrda pri brisanju).
+    if (isEditMode) {
+      Alert.alert('Sačuvati izmene?', 'Podaci dokumenta će biti trajno izmenjeni.', [
+        { text: 'Otkaži', style: 'cancel' },
+        { text: 'Sačuvaj', onPress: () => void persist(input) },
+      ]);
+    } else {
+      void persist(input);
     }
-  }, [type, documentNumber, firstName, lastName, nationality, expiryDate]);
+  }, [type, documentNumber, firstName, lastName, nationality, expiryDate, isEditMode, persist]);
+
+  if (loadingDoc) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (loadError != null) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.errorText}>{loadError}</Text>
+      </View>
+    );
+  }
 
   if (savedId != null) {
     return (
       <View style={styles.center}>
-        <Text style={styles.cardTitleOk}>Dokument sačuvan</Text>
-        <Text style={styles.savedText}>id={savedId}</Text>
-        <Pressable style={styles.button} onPress={reset}>
-          <Text style={styles.buttonText}>Unesi još jedan</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.button, styles.buttonSecondary]}
-          onPress={() => navigation.navigate('Home')}
-        >
-          <Text style={styles.buttonText}>Nazad na početnu</Text>
-        </Pressable>
+        <Text style={styles.cardTitleOk}>
+          {isEditMode ? 'Izmene sačuvane' : 'Dokument sačuvan'}
+        </Text>
+        {!isEditMode && <Text style={styles.savedText}>id={savedId}</Text>}
+        {isEditMode ? (
+          <Pressable style={styles.button} onPress={() => navigation.goBack()}>
+            <Text style={styles.buttonText}>Nazad na detalje</Text>
+          </Pressable>
+        ) : (
+          <>
+            <Pressable style={styles.button} onPress={reset}>
+              <Text style={styles.buttonText}>Unesi još jedan</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.button, styles.buttonSecondary]}
+              onPress={() => navigation.navigate('Home')}
+            >
+              <Text style={styles.buttonText}>Nazad na početnu</Text>
+            </Pressable>
+          </>
+        )}
       </View>
     );
   }
@@ -240,7 +322,11 @@ export default function ManualEntryScreen({ navigation }: ScreenProps<'ManualEnt
       {saveError != null && <Text style={styles.errorText}>{saveError}</Text>}
 
       <Pressable style={styles.button} onPress={handleSave} disabled={saving}>
-        {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sačuvaj</Text>}
+        {saving ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>{isEditMode ? 'Sačuvaj izmene' : 'Sačuvaj'}</Text>
+        )}
       </Pressable>
     </ScrollView>
   );

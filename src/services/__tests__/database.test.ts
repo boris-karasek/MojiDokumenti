@@ -9,7 +9,13 @@
  * plaintext, i da su save/get/getAll/delete operacije ispravne.
  */
 
-import { saveDocument, getAllDocuments, getDocument, deleteDocument } from '../database';
+import {
+  saveDocument,
+  getAllDocuments,
+  getDocument,
+  deleteDocument,
+  updateDocument,
+} from '../database';
 import { openDatabaseAsync } from 'expo-sqlite';
 import type { DocumentData } from '../../types';
 
@@ -126,6 +132,71 @@ describe('deleteDocument', () => {
 
   test('brisanje nepostojećeg id-ja ne baca grešku', async () => {
     await expect(deleteDocument('ne-postoji')).resolves.toBeUndefined();
+  });
+});
+
+describe('updateDocument', () => {
+  test('getDocument posle update vraća nove vrednosti', async () => {
+    const id = await saveDocument(SAMPLE_DOC);
+    const izmenjen: DocumentData = { ...SAMPLE_DOC, firstName: 'PETAR', lastName: 'PERIC' };
+
+    await updateDocument(id, izmenjen);
+
+    const doc = await getDocument(id);
+    expect(doc!.data).toEqual(izmenjen);
+  });
+
+  test('šifrat posle izmene je različit od šifrata pre nje (nov IV)', async () => {
+    const id = await saveDocument(SAMPLE_DOC);
+    const db = await openDatabaseAsync('mojidokumenti.db');
+    const before = await db.getFirstAsync<DocumentRow>(
+      'SELECT id, encrypted, createdAt FROM documents WHERE id = ?',
+      id,
+    );
+
+    // Isti sadržaj, ne samo izmenjen — dokazuje da je razlika u IV-u, ne u podacima.
+    await updateDocument(id, SAMPLE_DOC);
+
+    const after = await db.getFirstAsync<DocumentRow>(
+      'SELECT id, encrypted, createdAt FROM documents WHERE id = ?',
+      id,
+    );
+
+    expect(after!.encrypted).not.toBe(before!.encrypted);
+  });
+
+  test('red i dalje ima oblik v1:iv:ct:tag, nigde plaintext', async () => {
+    const id = await saveDocument(SAMPLE_DOC);
+    const izmenjen: DocumentData = { ...SAMPLE_DOC, firstName: 'PETAR', lastName: 'PERIC' };
+    await updateDocument(id, izmenjen);
+
+    const db = await openDatabaseAsync('mojidokumenti.db');
+    const row = await db.getFirstAsync<DocumentRow>(
+      'SELECT id, encrypted, createdAt FROM documents WHERE id = ?',
+      id,
+    );
+
+    const parts = row!.encrypted.split(':');
+    expect(parts).toHaveLength(4);
+    expect(parts[0]).toBe('v1');
+    expect(row!.encrypted).not.toContain(izmenjen.firstName);
+    expect(row!.encrypted).not.toContain(izmenjen.lastName);
+  });
+
+  test('createdAt kolona nepromenjena posle izmene', async () => {
+    const nowSpy = jest.spyOn(Date, 'now').mockReturnValueOnce(1720000000000);
+    const id = await saveDocument(SAMPLE_DOC);
+    nowSpy.mockRestore();
+
+    await updateDocument(id, { ...SAMPLE_DOC, firstName: 'PETAR' });
+
+    const doc = await getDocument(id);
+    expect(doc!.createdAt).toBe(1720000000000);
+  });
+
+  test('update nepostojećeg id-a ne baca i ne kreira nov red', async () => {
+    await expect(updateDocument('ne-postoji', SAMPLE_DOC)).resolves.toBeUndefined();
+    expect(await getAllDocuments()).toEqual([]);
   });
 });
 

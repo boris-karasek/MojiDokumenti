@@ -148,3 +148,23 @@ export async function deleteDocument(id: string): Promise<void> {
   const db = await getDb();
   await db.runAsync('DELETE FROM documents WHERE id = ?', id);
 }
+
+/**
+ * Izmena postojećeg dokumenta. JEDAN UPDATE, ne delete+insert — prekid
+ * procesa između te dve operacije bi trajno obrisao zapis.
+ *
+ * KRITIČNO: encryptObject(data) se poziva iznova ovde, čime nastaje NOV
+ * nasumičan IV za novi šifrat. Ponovna upotreba IV-a sa istim ključem bi
+ * katastrofalno srušila AES-GCM — XOR dva šifrata nastala istim IV-om/
+ * ključem otkriva XOR njihovih plaintext-ova, a napadač uz to može
+ * falsifikovati auth tag (tzv. "nonce reuse" napad). encryptObject uvek
+ * generiše nov IV, pa je poziv ovde jedini bezbedan način da se zapis izmeni.
+ *
+ * createdAt kolona se NE dira — ostaje datum prvog unosa (updatedAt se
+ * namerno ne uvodi, app ga nigde funkcionalno ne koristi).
+ */
+export async function updateDocument(id: string, data: DocumentData): Promise<void> {
+  const db = await getDb();
+  const encrypted = await encryptObject(data);
+  await db.runAsync('UPDATE documents SET encrypted = ? WHERE id = ?', encrypted, id);
+}

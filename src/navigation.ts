@@ -10,11 +10,11 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 export type RootStackParamList = {
   Home: undefined;
   CryptoTest: undefined;
-  DatabaseTest: undefined;
   ScanDocument: undefined;
-  ManualEntry: undefined;
-  // Budući moduli se dodaju ovde, npr:
-  // DocumentDetails: { documentId: string };
+  // documentId prisutan → izmena postojećeg dokumenta, odsutan → nov unos
+  // (isti ekran, v. ManualEntryScreen.tsx).
+  ManualEntry: { documentId?: string } | undefined;
+  DocumentDetails: { documentId: string };
 };
 
 /** Props tip za ekran — koristi se kao: ScreenProps<'Home'> */

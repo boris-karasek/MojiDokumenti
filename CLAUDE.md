@@ -56,7 +56,29 @@ komentarima, jer kod ulazi u tekst rada.
   SQLite kolona (invarijanta 3 je dopušta), pa je enkriptovana kopija bila
   čist višak bez funkcionalne koristi; `saveDocument` (`database.ts`) sad
   sam generiše `createdAt` za tu kolonu. V. "Minimizacija podataka" ispod.
-- Sledeće: 7. lista/detalji → 8. lokalne notifikacije → 9. Firebase Auth +
+- ✅ **Modul 7 — lista/detalji/izmena/brisanje dokumenata**:
+  `src/services/documentStatus.ts` (čista funkcija — `getExpiryStatus`
+  poredi po CELIM danima uz `DANI_UPOZORENJA = 30` prag, dokument koji
+  ističe danas je još `istice_uskoro` ne `istekao`; `sortByExpiry` sortira
+  najhitnije prvo, 8 Jest testova) + `updateDocument` u `database.ts`
+  (jedan `UPDATE`, ne delete+insert; poziva `encryptObject` iznova radi
+  novog IV-a, 5 dodatnih testova) + `src/services/documentLabels.ts`
+  (čitljivi srpski nazivi `DocumentType`, deljeno između liste/detalja/forme,
+  izdvojeno iz `ManualEntryScreen`) + `DocumentListScreen.tsx` (zamenjuje
+  `HomeScreen` kao `Home` ruta — `FlatList` nad `getAllDocuments()` +
+  `sortByExpiry`, badge statusa po boji, prazno stanje sa dugmadima
+  Skeniraj/Unesi ručno, diskretan link ka `CryptoTest` za evaluaciju) +
+  `DocumentDetailScreen.tsx` (nova ruta `DocumentDetails`, sva polja
+  uključujući `nationality` kad je postavljena, dugmad Izmeni/Obriši sa
+  `Alert.alert` potvrdom pre brisanja) + `ManualEntryScreen` proširen
+  opcionim `documentId` parametrom (v. `navigation.ts`) — isti ekran radi i
+  unos i izmenu, pri izmeni učitava postojeći dokument (`getDocument`) i
+  čuva kroz `updateDocument`, uz `Alert.alert` potvrdu pre snimanja izmene
+  (nema check-digit zaštite kao kod MRZ skeniranja, korisnik ručno kuca).
+  `DatabaseTestScreen` i `HomeScreen` obrisani (privremeni razvojni ekrani,
+  zamenjeni pravim UI-jem).
+- Sledeće: 8. lokalne notifikacije (uvoze `DANI_UPOZORENJA` iz
+  `documentStatus.ts`, isti prag, ne duplirati) → 9. Firebase Auth +
   Firestore sync → 10. QR prenos ključa → 11. biometrija
 
 ## Arhitektura
@@ -132,11 +154,15 @@ src/navigation.ts                RootStackParamList — nov ekran se registruje 
 src/services/crypto.ts           ključ + AES-GCM (NE menjati bez dogovora s autorom)
 src/services/database.ts         repository sloj (expo-sqlite + crypto) — vraća samo DecryptedDocument
 src/services/mrzNormalizer.ts    čisti sirov OCR izlaz (K→<, dužina linije) PRE mrz parsiranja — bez native zavisnosti
-src/services/documentValidation.ts  čista validacija manuelnog unosa (bez UI-ja) — obavezna polja, datumi, platna kartica
+src/services/documentValidation.ts  čista validacija manuelnog unosa/izmene (bez UI-ja) — obavezna polja, datumi, platna kartica
+src/services/documentStatus.ts   čist status hitnosti (istekao/ističe uskoro/važeći) — DANI_UPOZORENJA prag, koristi ga i modul 8
+src/services/documentLabels.ts   čitljivi srpski nazivi DocumentType — deljeno između liste/detalja/forme
 src/services/__tests__/          Jest testovi
-src/screens/                     ekrani (uključujući privremene *TestScreen za verifikaciju na uređaju)
+src/screens/                     ekrani (uključujući CryptoTestScreen za verifikaciju na uređaju)
+src/screens/DocumentListScreen.tsx  glavni ekran (ruta Home) — lista dokumenata, useFocusEffect osvežavanje, prazno stanje
+src/screens/DocumentDetailScreen.tsx  sva polja + status jednog dokumenta, dugmad Izmeni/Obriši
 src/screens/ScanScreen.tsx       kamera (expo-camera) + ML Kit OCR → mrzNormalizer → mrz parsing → potvrda → saveDocument
-src/screens/ManualEntryScreen.tsx  forma bez kamere/OCR-a → documentValidation → saveDocument (isti DocumentData kao ScanScreen)
+src/screens/ManualEntryScreen.tsx  forma bez kamere/OCR-a → documentValidation → saveDocument/updateDocument (opcioni documentId bira unos/izmenu)
 __mocks__/                       Jest mape: quick-crypto→Node crypto, SecureStore→memorija, expo-sqlite→in-memory
 ```
 
@@ -219,8 +245,11 @@ stižu preko Metro-a.
   native implementaciju dokazuje CryptoTestScreen na uređaju. Oba sloja ostaju.
 - Isti princip za `expo-sqlite`: Jest testovi rade na mock bazi
   (`__mocks__/expo-sqlite.js`, in-memory), native implementaciju i
-  PERZISTENCIJU PREKO RESTARTA dokazuje DatabaseTestScreen na uređaju
-  (dugme "Učitaj postojeće" bez prethodnog Save-a nakon restarta app-a).
+  PERZISTENCIJU PREKO RESTARTA je dokazao `DatabaseTestScreen` na uređaju
+  (dugme "Učitaj postojeće" bez prethodnog Save-a nakon restarta app-a) —
+  ekran je uklonjen u modulu 7 kad ga je zamenio pravi `DocumentListScreen`;
+  perzistencija ostaje dokazana, samo se od modula 7 verifikuje kroz pravi UI
+  (v. README.md, sekcija testiranja).
 - `npx expo start --tunnel` ako QR/Metro ne radi preko lokalne mreže.
 
 - **OCR meša `0` i `O`** kad broj dokumenta sadrži i slova i cifre. Otkriveno
@@ -230,6 +259,21 @@ stižu preko Metro-a.
   numeričke brojeve dokumenata (kako srpski pasoš i lična karta ionako rade).
   Normalizator NAMERNO ne pogađa `0`↔`O` — u broju dokumenta bi pogrešno
   pogađanje tiho proizvelo validan ali pogrešan dokument.
+- `useFocusEffect` (@react-navigation/native) mora zameniti `useEffect` za
+  osvežavanje ekrana koji zavise od podataka izmenjenih na DRUGOM ekranu istog
+  stack-a. `navigation.navigate('Home')` posle Save-a na ScanScreen/
+  ManualEntryScreen/DocumentDetailScreen se vraća na već montiran
+  `DocumentListScreen` (React Navigation ne remontira ekrane niže u stack-u) →
+  običan `useEffect([])` bi se pokrenuo samo jednom, pri prvom montiranju, i
+  propustio bi novosačuvan/izmenjen/obrisan dokument. `useFocusEffect` se
+  pokreće pri SVAKOM fokusiranju ekrana, uključujući povratak navigacijom
+  unazad — koristi ga i `DocumentListScreen` i `DocumentDetailScreen`.
+- Svaka izmena postojećeg šifrata (`updateDocument`) MORA pozvati
+  `encryptObject` iznova, nikad ne recikliraj stari IV uz nov ciphertext —
+  ponovna upotreba IV-a sa istim ključem kod AES-GCM otkriva XOR
+  plaintext-ova dva zapisa i omogućava falsifikovanje auth taga. Zato
+  `updateDocument` radi jedan `UPDATE` sa svežim `encryptObject(data)` pozivom,
+  ne pokušava da "zakrpi" postojeći šifrat.
 - Prva hipoteza za neuspelo čitanje odštampanih uzoraka bio je nedostatak
   OCR-B fonta. Pokazalo se da NIJE uzrok: posle prelaska na numeričke brojeve,
   uzorci se čitaju i odštampani običnim fontom. Font pomaže, ali pravi krivac
