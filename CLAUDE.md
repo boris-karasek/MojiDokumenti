@@ -77,6 +77,13 @@ komentarima, jer kod ulazi u tekst rada.
   (nema check-digit zaštite kao kod MRZ skeniranja, korisnik ručno kuca).
   `DatabaseTestScreen` i `HomeScreen` obrisani (privremeni razvojni ekrani,
   zamenjeni pravim UI-jem).
+- ✅ **chore/ui-tema**: `src/ui/theme.ts` (jedini izvor boja/razmaka/tipografije,
+  tokeni imenovani po ulozi) + svi ekrani i `documentLabels.ts` prebačeni sa
+  heks vrednosti direktno u `StyleSheet.create` na `theme` tokene. Čisto
+  preseljenje — izgled nepromenjen, izuzev `STATUS_STYLES.text` u
+  `documentLabels.ts` (bio pogrešno mapiran na `*Soft` varijante, sad na
+  tamne parnjake) i `buttonSecondary` pozadine (svesno prebačena na
+  `theme.colors.secondary`).
 - Sledeće: 8. lokalne notifikacije (uvoze `DANI_UPOZORENJA` iz
   `documentStatus.ts`, isti prag, ne duplirati) → 9. Firebase Auth +
   Firestore sync → 10. QR prenos ključa → 11. biometrija
@@ -149,6 +156,7 @@ Vision API, push/FCM notifikacije, Firestore `Timestamp` tip (sve osetljivo je
 
 ```
 App.tsx                          init ključa + navigacija
+src/ui/theme.ts                  jedini izvor boja/razmaka/tipografije — ekrani ne pišu heks direktno
 src/types.ts                     CENTRALNI model — svaka izmena modela kreće odavde
 src/navigation.ts                RootStackParamList — nov ekran se registruje tu
 src/services/crypto.ts           ključ + AES-GCM (NE menjati bez dogovora s autorom)

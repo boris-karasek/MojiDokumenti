@@ -8,6 +8,7 @@
 
 import type { DocumentType } from '../types';
 import type { ExpiryStatus } from './documentStatus';
+import theme from '../ui/theme';
 
 export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   pasos: 'Pasoš',
@@ -25,9 +26,9 @@ export const STATUS_LABELS: Record<ExpiryStatus, string> = {
 };
 
 export const STATUS_STYLES: Record<ExpiryStatus, { bg: string; text: string }> = {
-  istekao: { bg: '#fdecea', text: '#a33b2e' },
-  istice_uskoro: { bg: '#fff4e0', text: '#b8720a' },
-  vazeci: { bg: '#e6f4ea', text: '#2e7d32' },
+  istekao: { bg: theme.colors.dangerSoft, text: theme.colors.danger },
+  istice_uskoro: { bg: theme.colors.warningSoft, text: theme.colors.warning },
+  vazeci: { bg: theme.colors.successSoft, text: theme.colors.success },
 };
 
 export const DOCUMENT_TYPES = Object.keys(DOCUMENT_TYPE_LABELS) as DocumentType[];
