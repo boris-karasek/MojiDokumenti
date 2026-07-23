@@ -20,6 +20,7 @@ import {
 } from '../services/crypto';
 import type { DocumentData } from '../types';
 import { msg } from '../utils/errors';
+import theme from '../ui/theme';
 
 interface TestResult {
   name: string;
@@ -154,7 +155,7 @@ export default function CryptoTestScreen() {
               {r.detail !== '' && <Text style={styles.rowDetail}>{r.detail}</Text>}
             </View>
           ))}
-          <Text style={[styles.summary, { color: allPassed ? '#1a7f37' : '#c0392b' }]}>
+          <Text style={[styles.summary, { color: allPassed ? theme.colors.success : theme.colors.danger }]}>
             {allPassed ? 'Svih 6 testova prošlo — modul 2 gotov.' : 'Neki testovi nisu prošli.'}
           </Text>
         </View>
@@ -164,23 +165,23 @@ export default function CryptoTestScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: theme.colors.surface },
   content: { padding: 20 },
   title: { fontSize: 22, fontWeight: '700', marginBottom: 4 },
-  subtitle: { fontSize: 13, color: '#666', marginBottom: 20 },
+  subtitle: { fontSize: 13, color: theme.colors.textMuted, marginBottom: 20 },
   button: {
-    backgroundColor: '#1f4e79',
+    backgroundColor: theme.colors.primary,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
     marginBottom: 20,
   },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  buttonText: { color: theme.colors.textInverse, fontSize: 16, fontWeight: '600' },
   results: { gap: 8 },
   row: { borderRadius: 8, padding: 12 },
-  rowOk: { backgroundColor: '#e8f5e9' },
-  rowFail: { backgroundColor: '#fdecea' },
+  rowOk: { backgroundColor: theme.colors.successSoft },
+  rowFail: { backgroundColor: theme.colors.dangerSoft },
   rowName: { fontSize: 15, fontWeight: '600' },
-  rowDetail: { fontSize: 12, color: '#555', marginTop: 2 },
+  rowDetail: { fontSize: 12, color: theme.colors.textMuted, marginTop: 2 },
   summary: { marginTop: 12, fontSize: 15, fontWeight: '700', textAlign: 'center' },
 });

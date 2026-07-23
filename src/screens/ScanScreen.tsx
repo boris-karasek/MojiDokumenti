@@ -47,6 +47,7 @@ import type { DocumentData, DocumentType } from '../types';
 import { DOCUMENT_TYPE_LABELS } from '../services/documentLabels';
 import type { ScreenProps } from '../navigation';
 import { msg } from '../utils/errors';
+import theme from '../ui/theme';
 
 // ---------------------------------------------------------------- korak 3
 // Iz sirovog OCR teksta izdvoji kandidat-linije MRZ zone: poslednje 2 (TD3 —
@@ -320,7 +321,7 @@ export default function ScanScreen({ navigation }: ScreenProps<'ScanDocument'>) 
               disabled={phase === 'processing' || !cameraReady}
             >
               {phase === 'processing' ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={theme.colors.textInverse} />
               ) : (
                 <Text style={styles.buttonText}>Slikaj i skeniraj</Text>
               )}
@@ -368,7 +369,7 @@ export default function ScanScreen({ navigation }: ScreenProps<'ScanDocument'>) 
 
                 <Pressable style={styles.button} onPress={handleSave} disabled={saving}>
                   {saving ? (
-                    <ActivityIndicator color="#fff" />
+                    <ActivityIndicator color={theme.colors.textInverse} />
                   ) : (
                     <Text style={styles.buttonText}>Sačuvaj</Text>
                   )}
@@ -461,13 +462,13 @@ function DebugPanel({ rawText, candidates, normalized, parsed }: DebugPanelProps
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: theme.colors.cameraBackground },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: '#111',
+    backgroundColor: theme.colors.cameraSurface,
   },
   header: {
     flexDirection: 'row',
@@ -476,11 +477,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 8,
-    backgroundColor: '#000',
+    backgroundColor: theme.colors.cameraBackground,
   },
-  headerTitle: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  headerTitle: { color: theme.colors.cameraText, fontSize: 16, fontWeight: '700' },
   debugToggle: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  debugToggleLabel: { color: '#ccc', fontSize: 13 },
+  debugToggleLabel: { color: theme.colors.cameraTextMuted, fontSize: 13 },
   cameraWrap: { flex: 1 },
   camera: { flex: 1 },
   overlay: {
@@ -492,7 +493,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   hint: {
-    color: '#fff',
+    color: theme.colors.cameraText,
     textAlign: 'center',
     marginBottom: 16,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -500,7 +501,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   captureButton: {
-    backgroundColor: '#2563eb',
+    backgroundColor: theme.colors.primary,
     paddingVertical: 14,
     paddingHorizontal: 28,
     borderRadius: 10,
@@ -508,34 +509,34 @@ const styles = StyleSheet.create({
     minWidth: 220,
   },
   button: {
-    backgroundColor: '#1f4e79',
+    backgroundColor: theme.colors.primary,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 10,
   },
-  buttonSecondary: { backgroundColor: '#555' },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  permissionTitle: { color: '#fff', fontSize: 18, fontWeight: '700', marginBottom: 8, textAlign: 'center' },
-  permissionText: { color: '#ccc', fontSize: 14, textAlign: 'center', marginBottom: 20 },
-  resultScroll: { flex: 1, backgroundColor: '#f5f5f5' },
+  buttonSecondary: { backgroundColor: theme.colors.secondary },
+  buttonText: { color: theme.colors.textInverse, fontSize: 16, fontWeight: '600' },
+  permissionTitle: { color: theme.colors.cameraText, fontSize: 18, fontWeight: '700', marginBottom: 8, textAlign: 'center' },
+  permissionText: { color: theme.colors.cameraTextMuted, fontSize: 14, textAlign: 'center', marginBottom: 20 },
+  resultScroll: { flex: 1, backgroundColor: theme.colors.background },
   resultContent: { padding: 20 },
-  card: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 16 },
-  cardTitleOk: { fontSize: 16, fontWeight: '700', marginBottom: 12, color: '#1f4e79' },
-  cardTitleError: { fontSize: 16, fontWeight: '700', marginBottom: 8, color: '#a33b2e' },
-  errorText: { color: '#a33b2e', fontSize: 14, marginBottom: 8 },
-  savedText: { color: '#555', fontSize: 12, marginBottom: 4 },
+  card: { backgroundColor: theme.colors.surface, borderRadius: 12, padding: 16, marginBottom: 16 },
+  cardTitleOk: { fontSize: 16, fontWeight: '700', marginBottom: 12, color: theme.colors.primary },
+  cardTitleError: { fontSize: 16, fontWeight: '700', marginBottom: 8, color: theme.colors.danger },
+  errorText: { color: theme.colors.danger, fontSize: 14, marginBottom: 8 },
+  savedText: { color: theme.colors.textMuted, fontSize: 12, marginBottom: 4 },
   field: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: theme.colors.divider,
   },
-  fieldLabel: { color: '#666', fontSize: 14 },
+  fieldLabel: { color: theme.colors.textMuted, fontSize: 14 },
   fieldValue: { fontWeight: '600', fontSize: 14 },
-  debugCard: { backgroundColor: '#111', borderRadius: 12, padding: 16 },
-  debugTitle: { color: '#fff', fontSize: 14, fontWeight: '700', marginBottom: 10 },
-  debugLabel: { color: '#9ca3af', fontSize: 12, fontWeight: '600', marginTop: 10, marginBottom: 4 },
-  debugMono: { color: '#e5e7eb', fontFamily: 'monospace', fontSize: 12, marginBottom: 2 },
+  debugCard: { backgroundColor: theme.colors.cameraSurface, borderRadius: 12, padding: 16 },
+  debugTitle: { color: theme.colors.cameraText, fontSize: 14, fontWeight: '700', marginBottom: 10 },
+  debugLabel: { color: theme.colors.cameraTextMuted, fontSize: 12, fontWeight: '600', marginTop: 10, marginBottom: 4 },
+  debugMono: { color: theme.colors.cameraTextMuted, fontFamily: 'monospace', fontSize: 12, marginBottom: 2 },
 });

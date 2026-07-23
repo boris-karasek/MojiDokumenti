@@ -53,6 +53,8 @@ Detaljna arhitektura, bezbednosne invarijante i konvencije razvoja su u
   (sva polja, dugmad Izmeni/Obriši) + `ManualEntryScreen` proširen opcionim
   `documentId` (isti ekran radi unos i izmenu). `DatabaseTestScreen` uklonjen
   — zamenjen pravim UI-jem.
+- ✅ chore/ui-tema: boje preseljene iz ekrana u `src/ui/theme.ts` (jedini
+  izvor boja/razmaka/tipografije) — izgled nepromenjen
 - Sledeće: Modul 8 (lokalne notifikacije — uvoze `DANI_UPOZORENJA` iz
   `documentStatus.ts`)
 
@@ -94,6 +96,7 @@ npx expo start --dev-client --tunnel
 
 ```
 App.tsx                          init master ključa + navigacija
+src/ui/theme.ts                  jedini izvor boja/razmaka/tipografije
 src/types.ts                     centralni model podataka (DocumentData, EncryptedString…)
 src/navigation.ts                RootStackParamList
 src/services/crypto.ts           master ključ (Keystore) + AES-256-GCM

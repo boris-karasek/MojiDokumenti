@@ -22,6 +22,7 @@ import { DOCUMENT_TYPE_LABELS } from '../services/documentLabels';
 import type { DecryptedDocument } from '../types';
 import type { ScreenProps } from '../navigation';
 import { STATUS_LABELS, STATUS_STYLES } from '../services/documentLabels';
+import theme from '../ui/theme';
 
 
 function badgeText(status: ExpiryStatus, daysLeft: number): string {
@@ -130,34 +131,34 @@ export default function DocumentListScreen({ navigation }: ScreenProps<'Home'>) 
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', paddingTop: 32 },
+  container: { flex: 1, backgroundColor: theme.colors.surface, paddingTop: 32 },
   header: { paddingHorizontal: 20, marginBottom: 12 },
   title: { fontSize: 28, fontWeight: '800', marginBottom: 12 },
   headerActions: { flexDirection: 'row', gap: 8 },
   headerButton: {
-    backgroundColor: '#1f4e79',
+    backgroundColor: theme.colors.primary,
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 14,
   },
-  headerButtonText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  headerButtonText: { color: theme.colors.textInverse, fontSize: 14, fontWeight: '600' },
   loading: { marginTop: 40 },
-  errorText: { color: '#a33b2e', paddingHorizontal: 20, marginBottom: 10 },
+  errorText: { color: theme.colors.danger, paddingHorizontal: 20, marginBottom: 10 },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 10 },
-  emptyText: { fontSize: 15, color: '#666', marginBottom: 10 },
+  emptyText: { fontSize: 15, color: theme.colors.textMuted, marginBottom: 10 },
   button: {
-    backgroundColor: '#1f4e79',
+    backgroundColor: theme.colors.primary,
     borderRadius: 10,
     paddingVertical: 14,
     paddingHorizontal: 24,
     alignItems: 'center',
     minWidth: 200,
   },
-  buttonSecondary: { backgroundColor: '#555' },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  buttonSecondary: { backgroundColor: theme.colors.secondary },
+  buttonText: { color: theme.colors.textInverse, fontSize: 16, fontWeight: '600' },
   listContent: { paddingHorizontal: 20, paddingBottom: 20, gap: 10 },
   row: {
-    backgroundColor: '#f2f5f9',
+    backgroundColor: theme.colors.background,
     borderRadius: 12,
     padding: 14,
     flexDirection: 'row',
@@ -166,11 +167,11 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   rowMain: { flex: 1 },
-  rowType: { fontSize: 12, fontWeight: '700', color: '#1f4e79', marginBottom: 2 },
-  rowName: { fontSize: 16, fontWeight: '600', color: '#111' },
-  rowDate: { fontSize: 12, color: '#666', marginTop: 2 },
+  rowType: { fontSize: 12, fontWeight: '700', color: theme.colors.primary, marginBottom: 2 },
+  rowName: { fontSize: 16, fontWeight: '600', color: theme.colors.text },
+  rowDate: { fontSize: 12, color: theme.colors.textMuted, marginTop: 2 },
   badge: { borderRadius: 8, paddingVertical: 6, paddingHorizontal: 10 },
   badgeText: { fontSize: 12, fontWeight: '700' },
   evalLink: { padding: 16, alignItems: 'center' },
-  evalLinkText: { color: '#888', fontSize: 12 },
+  evalLinkText: { color: theme.colors.textMuted, fontSize: 12 },
 });

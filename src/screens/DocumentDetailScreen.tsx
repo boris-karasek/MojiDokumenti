@@ -23,19 +23,8 @@ import { getExpiryStatus, type ExpiryStatus } from '../services/documentStatus';
 import { DOCUMENT_TYPE_LABELS } from '../services/documentLabels';
 import type { DecryptedDocument } from '../types';
 import type { ScreenProps } from '../navigation';
-
-
-const STATUS_LABELS: Record<ExpiryStatus, string> = {
-  istekao: 'Istekao',
-  istice_uskoro: 'Ističe uskoro',
-  vazeci: 'Važeći',
-};
-
-const STATUS_STYLES: Record<ExpiryStatus, { bg: string; text: string }> = {
-  istekao: { bg: '#fdecea', text: '#a33b2e' },
-  istice_uskoro: { bg: '#fff4e0', text: '#b8720a' },
-  vazeci: { bg: '#e6f4ea', text: '#2e7d32' },
-};
+import theme from '../ui/theme';
+import { STATUS_LABELS, STATUS_STYLES } from '../services/documentLabels';
 
 export default function DocumentDetailScreen({ navigation, route }: ScreenProps<'DocumentDetails'>) {
   const { documentId } = route.params;
@@ -143,28 +132,28 @@ function Field({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: theme.colors.surface },
   content: { padding: 20, paddingBottom: 40 },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
   },
-  errorText: { color: '#a33b2e', fontSize: 14, textAlign: 'center' },
+  errorText: { color: theme.colors.danger, fontSize: 14, textAlign: 'center' },
   badge: { alignSelf: 'flex-start', borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12, marginBottom: 20 },
   badgeText: { fontSize: 13, fontWeight: '700' },
   field: { marginBottom: 16 },
-  fieldLabel: { fontSize: 13, color: '#666', marginBottom: 4, fontWeight: '600' },
-  fieldValue: { fontSize: 16, color: '#111' },
+  fieldLabel: { fontSize: 13, color: theme.colors.textMuted, marginBottom: 4, fontWeight: '600' },
+  fieldValue: { fontSize: 16, color: theme.colors.text },
   button: {
-    backgroundColor: '#1f4e79',
+    backgroundColor: theme.colors.primary,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 10,
   },
-  buttonDanger: { backgroundColor: '#a33b2e' },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  buttonDanger: { backgroundColor: theme.colors.danger },
+  buttonText: { color: theme.colors.textInverse, fontSize: 16, fontWeight: '600' },
 });

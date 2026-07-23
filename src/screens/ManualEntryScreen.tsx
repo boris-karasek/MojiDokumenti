@@ -43,6 +43,7 @@ import { DOCUMENT_TYPE_LABELS, DOCUMENT_TYPES } from '../services/documentLabels
 import type { DocumentType } from '../types';
 import type { ScreenProps } from '../navigation';
 import { msg } from '../utils/errors';
+import theme from '../ui/theme';
 
 const formatDate = (d: Date | null): string =>
   d == null ? 'Izaberi datum' : d.toISOString().slice(0, 10);
@@ -322,7 +323,7 @@ export default function ManualEntryScreen({ navigation, route }: ScreenProps<'Ma
 
       <Pressable style={styles.button} onPress={handleSave} disabled={saving}>
         {saving ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={theme.colors.textInverse} />
         ) : (
           <Text style={styles.buttonText}>{isEditMode ? 'Sačuvaj izmene' : 'Sačuvaj'}</Text>
         )}
@@ -394,31 +395,31 @@ function DateField({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: theme.colors.surface },
   content: { padding: 20, paddingBottom: 40 },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
   },
-  sectionLabel: { fontSize: 13, fontWeight: '700', color: '#666', marginBottom: 8 },
+  sectionLabel: { fontSize: 13, fontWeight: '700', color: theme.colors.textMuted, marginBottom: 8 },
   typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
   typeChip: {
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 20,
-    backgroundColor: '#f2f5f9',
+    backgroundColor: theme.colors.background,
   },
-  typeChipSelected: { backgroundColor: '#1f4e79' },
-  typeChipText: { color: '#1f4e79', fontWeight: '600', fontSize: 13 },
-  typeChipTextSelected: { color: '#fff' },
+  typeChipSelected: { backgroundColor: theme.colors.primary },
+  typeChipText: { color: theme.colors.primary, fontWeight: '600', fontSize: 13 },
+  typeChipTextSelected: { color: theme.colors.textInverse },
   field: { marginBottom: 16 },
-  fieldLabel: { fontSize: 13, color: '#666', marginBottom: 6, fontWeight: '600' },
+  fieldLabel: { fontSize: 13, color: theme.colors.textMuted, marginBottom: 6, fontWeight: '600' },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: theme.colors.border,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 12,
@@ -426,20 +427,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 46,
   },
-  inputError: { borderColor: '#a33b2e' },
-  fieldError: { color: '#a33b2e', fontSize: 12, marginTop: 4 },
-  datePlaceholder: { color: '#999', fontSize: 15 },
-  dateValue: { color: '#111', fontSize: 15 },
+  inputError: { borderColor: theme.colors.danger },
+  fieldError: { color: theme.colors.danger, fontSize: 12, marginTop: 4 },
+  datePlaceholder: { color: theme.colors.textMuted, fontSize: 15 },
+  dateValue: { color: theme.colors.text, fontSize: 15 },
   button: {
-    backgroundColor: '#1f4e79',
+    backgroundColor: theme.colors.primary,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 10,
   },
-  buttonSecondary: { backgroundColor: '#555' },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  cardTitleOk: { fontSize: 18, fontWeight: '700', marginBottom: 12, color: '#1f4e79' },
-  savedText: { color: '#555', fontSize: 12, marginBottom: 20 },
-  errorText: { color: '#a33b2e', fontSize: 14, marginBottom: 8 },
+  buttonSecondary: { backgroundColor: theme.colors.secondary },
+  buttonText: { color: theme.colors.textInverse, fontSize: 16, fontWeight: '600' },
+  cardTitleOk: { fontSize: 18, fontWeight: '700', marginBottom: 12, color: theme.colors.primary },
+  savedText: { color: theme.colors.textMuted, fontSize: 12, marginBottom: 20 },
+  errorText: { color: theme.colors.danger, fontSize: 14, marginBottom: 8 },
 });
