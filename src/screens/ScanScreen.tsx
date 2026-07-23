@@ -22,7 +22,7 @@
  * DocumentData nakon eksplicitne potvrde korisnika.
  */
 
-import React, { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -44,9 +44,9 @@ import {
 } from '../services/mrzNormalizer';
 import { saveDocument } from '../services/database';
 import type { DocumentData, DocumentType } from '../types';
+import { DOCUMENT_TYPE_LABELS } from '../services/documentLabels';
 import type { ScreenProps } from '../navigation';
-
-const msg = (e: unknown) => (e instanceof Error ? e.message : String(e));
+import { msg } from '../utils/errors';
 
 // ---------------------------------------------------------------- korak 3
 // Iz sirovog OCR teksta izdvoji kandidat-linije MRZ zone: poslednje 2 (TD3 —
@@ -130,14 +130,6 @@ function mapParsedToDocumentData(parsed: ParseResult, mrzType: MrzDocumentType):
   };
 }
 
-const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
-  pasos: 'Pasoš',
-  licna_karta: 'Lična karta',
-  vozacka: 'Vozačka dozvola',
-  oruzni_list: 'Oružni list',
-  platna_kartica: 'Platna kartica',
-  ostalo: 'Ostalo',
-};
 
 const formatDate = (iso: string | undefined): string => (iso == null ? '—' : iso.slice(0, 10));
 
@@ -149,6 +141,8 @@ export default function ScanScreen({ navigation }: ScreenProps<'ScanDocument'>) 
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
   const [cameraReady, setCameraReady] = useState(false);
+
+  const mounted = useRef(true);
 
   const [phase, setPhase] = useState<Phase>('camera');
   const [error, setError] = useState<string | null>(null);
@@ -162,6 +156,13 @@ export default function ScanScreen({ navigation }: ScreenProps<'ScanDocument'>) 
   const [normalizeResult, setNormalizeResult] = useState<MrzNormalizeResult | null>(null);
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
   const [documentData, setDocumentData] = useState<DocumentData | null>(null);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  },[]);
 
   /** Potpuni reset — nakon uspešnog čuvanja, za skeniranje sledećeg dokumenta. */
   const reset = useCallback(() => {
@@ -194,9 +195,11 @@ export default function ScanScreen({ navigation }: ScreenProps<'ScanDocument'>) 
     try {
       // 2a. Slika sa kamere (privremen fajl u cache-u uređaja, nigde se ne upisuje).
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
+      if (!mounted.current) return;
 
       // 2b. OCR — ML Kit, potpuno on-device (bez mreže).
       const ocrResult = await TextRecognition.recognize(photo.uri);
+      if(!mounted.current) return;
       const text = ocrResult.text;
       setRawOcrText(text);
       if (text === '') {
@@ -232,6 +235,7 @@ export default function ScanScreen({ navigation }: ScreenProps<'ScanDocument'>) 
       setDocumentData(data);
       setPhase('preview');
     } catch (e) {
+      if(!mounted.current) return;
       setError(msg(e));
       setPhase('invalid');
     }
@@ -245,11 +249,15 @@ export default function ScanScreen({ navigation }: ScreenProps<'ScanDocument'>) 
       // 7. Čuvanje — encryptObject + expo-sqlite (database.ts), tek nakon
       // eksplicitne potvrde korisnika u preview koraku.
       const id = await saveDocument(documentData);
+      if(!mounted.current) return;
       setSavedId(id);
     } catch (e) {
+      if(!mounted.current) return;
       setError(msg(e));
     } finally {
-      setSaving(false);
+      if(mounted.current) {
+        setSaving(false);
+      }
     }
   }, [documentData]);
 
