@@ -14,26 +14,15 @@
 import { useCallback, useState } from 'react';
 import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { msg } from '../utils/errors';
 
 import { getAllDocuments } from '../services/database';
 import { sortByExpiry, getExpiryStatus, type ExpiryStatus } from '../services/documentStatus';
 import { DOCUMENT_TYPE_LABELS } from '../services/documentLabels';
 import type { DecryptedDocument } from '../types';
 import type { ScreenProps } from '../navigation';
+import { STATUS_LABELS, STATUS_STYLES } from '../services/documentLabels';
 
-const msg = (e: unknown) => (e instanceof Error ? e.message : String(e));
-
-const STATUS_LABELS: Record<ExpiryStatus, string> = {
-  istekao: 'Istekao',
-  istice_uskoro: 'Ističe uskoro',
-  vazeci: 'Važeći',
-};
-
-const STATUS_STYLES: Record<ExpiryStatus, { bg: string; text: string }> = {
-  istekao: { bg: '#fdecea', text: '#a33b2e' },
-  istice_uskoro: { bg: '#fff4e0', text: '#b8720a' },
-  vazeci: { bg: '#e6f4ea', text: '#2e7d32' },
-};
 
 function badgeText(status: ExpiryStatus, daysLeft: number): string {
   if (status === 'istekao') return `Istekao pre ${Math.abs(daysLeft)} d.`;

@@ -16,6 +16,7 @@
 import { useCallback, useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { msg } from '../utils/errors';
 
 import { getDocument, deleteDocument } from '../services/database';
 import { getExpiryStatus, type ExpiryStatus } from '../services/documentStatus';
@@ -23,7 +24,6 @@ import { DOCUMENT_TYPE_LABELS } from '../services/documentLabels';
 import type { DecryptedDocument } from '../types';
 import type { ScreenProps } from '../navigation';
 
-const msg = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 const STATUS_LABELS: Record<ExpiryStatus, string> = {
   istekao: 'Istekao',
