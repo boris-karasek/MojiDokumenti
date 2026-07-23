@@ -76,6 +76,9 @@ export interface ThemeColors {
   surface: string;
   surfaceVariant: string;
 
+  gradientStart: string;
+  gradientEnd: string;
+
   // Tekst
   text: string;
   textSecondary: string;
@@ -124,6 +127,9 @@ export const theme = {
     background: palette.alabasterGrey,
     surface: palette.white,
     surfaceVariant: palette.paleSlate,
+
+    gradientStart: palette.pearlAqua,
+    gradientEnd: '#000000',
 
     text: palette.ink,
     textSecondary: palette.balticBlue,
