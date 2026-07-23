@@ -19,6 +19,7 @@ import {
   decryptObjectWithKey,
 } from '../services/crypto';
 import type { DocumentData } from '../types';
+import { msg } from '../utils/errors';
 
 interface TestResult {
   name: string;
@@ -39,7 +40,6 @@ async function runAllTests(): Promise<TestResult[]> {
   const results: TestResult[] = [];
   const push = (name: string, ok: boolean, detail = '') =>
     results.push({ name, ok, detail });
-  const msg = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
   // 1. Generisanje / učitavanje ključa, dužina 256 bita
   try {
