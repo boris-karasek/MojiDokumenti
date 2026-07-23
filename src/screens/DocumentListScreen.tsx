@@ -11,27 +11,41 @@
  * primetio novosačuvan dokument — naučena lekcija ovog modula.
  */
 
-import { useCallback, useState } from 'react';
-import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
-import { msg } from '../utils/errors';
+import { useCallback, useState } from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import { msg } from "../utils/errors";
 
-import { getAllDocuments } from '../services/database';
-import { sortByExpiry, getExpiryStatus, type ExpiryStatus } from '../services/documentStatus';
-import { DOCUMENT_TYPE_LABELS } from '../services/documentLabels';
-import type { DecryptedDocument } from '../types';
-import type { ScreenProps } from '../navigation';
-import { STATUS_LABELS, STATUS_STYLES } from '../services/documentLabels';
-import theme from '../ui/theme';
-
+import { getAllDocuments } from "../services/database";
+import {
+  sortByExpiry,
+  getExpiryStatus,
+  type ExpiryStatus,
+} from "../services/documentStatus";
+import { DOCUMENT_TYPE_LABELS } from "../services/documentLabels";
+import type { DecryptedDocument } from "../types";
+import type { ScreenProps } from "../navigation";
+import { STATUS_LABELS, STATUS_STYLES } from "../services/documentLabels";
+import theme from "../ui/theme";
 
 function badgeText(status: ExpiryStatus, daysLeft: number): string {
-  if (status === 'istekao') return `Istekao pre ${Math.abs(daysLeft)} d.`;
-  if (status === 'istice_uskoro') return daysLeft === 0 ? 'Ističe danas' : `Ističe za ${daysLeft} d.`;
+  if (status === "istekao") return `Istekao pre ${Math.abs(daysLeft)} d.`;
+  if (status === "istice_uskoro")
+    return daysLeft === 0 ? "Ističe danas" : `Ističe za ${daysLeft} d.`;
   return STATUS_LABELS.vazeci;
 }
 
-export default function DocumentListScreen({ navigation }: ScreenProps<'Home'>) {
+export default function DocumentListScreen({
+  navigation,
+}: ScreenProps<"Home">) {
   const [documents, setDocuments] = useState<DecryptedDocument[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,118 +74,174 @@ export default function DocumentListScreen({ navigation }: ScreenProps<'Home'>) 
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Moji dokumenti</Text>
-        <View style={styles.headerActions}>
-          <Pressable style={styles.headerButton} onPress={() => navigation.navigate('ScanDocument')}>
-            <Text style={styles.headerButtonText}>📷 Skeniraj</Text>
-          </Pressable>
-          <Pressable style={styles.headerButton} onPress={() => navigation.navigate('ManualEntry')}>
-            <Text style={styles.headerButtonText}>✍️ Unesi ručno</Text>
-          </Pressable>
+    <LinearGradient
+      colors={[theme.colors.gradientStart, theme.colors.gradientEnd]}
+      style={styles.container}
+    >
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Moji dokumenti</Text>
+          <View style={styles.headerActions}>
+            <Pressable
+              style={styles.headerButton}
+              onPress={() => navigation.navigate("ScanDocument")}
+            >
+              <Text style={styles.headerButtonText}>📷 Skeniraj</Text>
+            </Pressable>
+            <Pressable
+              style={styles.headerButton}
+              onPress={() => navigation.navigate("ManualEntry")}
+            >
+              <Text style={styles.headerButtonText}>✍️ Unesi ručno</Text>
+            </Pressable>
+          </View>
         </View>
+
+        {loading && documents == null ? (
+          <ActivityIndicator style={styles.loading} size="large" />
+        ) : null}
+
+        {error != null ? (
+          <Text style={styles.errorText}>Greška pri učitavanju: {error}</Text>
+        ) : null}
+
+        {documents != null && documents.length === 0 && (
+          <View style={styles.empty}>
+            <Text style={styles.emptyText}>Nemaš sačuvanih dokumenata.</Text>
+            <Pressable
+              style={styles.button}
+              onPress={() => navigation.navigate("ScanDocument")}
+            >
+              <Text style={styles.buttonText}>Skeniraj</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.button, styles.buttonSecondary]}
+              onPress={() => navigation.navigate("ManualEntry")}
+            >
+              <Text style={styles.buttonText}>Unesi ručno</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {documents != null && documents.length > 0 && (
+          <FlatList
+            data={documents}
+            keyExtractor={(d) => d.id}
+            contentContainerStyle={styles.listContent}
+            renderItem={({ item }) => {
+              const { status, daysLeft } = getExpiryStatus(
+                item.data.expiryDate,
+              );
+              const badge = STATUS_STYLES[status];
+              return (
+                <Pressable
+                  style={styles.row}
+                  onPress={() =>
+                    navigation.navigate("DocumentDetails", {
+                      documentId: item.id,
+                    })
+                  }
+                >
+                  <View style={styles.rowMain}>
+                    <Text style={styles.rowType}>
+                      {DOCUMENT_TYPE_LABELS[item.data.type]}
+                    </Text>
+                    <Text style={styles.rowName}>
+                      {item.data.firstName} {item.data.lastName}
+                    </Text>
+                    <Text style={styles.rowDate}>
+                      ističe {item.data.expiryDate.slice(0, 10)}
+                    </Text>
+                  </View>
+                  <View style={[styles.badge, { backgroundColor: badge.bg }]}>
+                    <Text style={[styles.badgeText, { color: badge.text }]}>
+                      {badgeText(status, daysLeft)}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            }}
+          />
+        )}
+
+        <Pressable
+          style={styles.evalLink}
+          onPress={() => navigation.navigate("CryptoTest")}
+        >
+          <Text style={styles.evalLinkText}>
+            🔐 Crypto testovi (evaluacija)
+          </Text>
+        </Pressable>
       </View>
-
-      {loading && documents == null && <ActivityIndicator style={styles.loading} size="large" />}
-
-      {error != null && <Text style={styles.errorText}>Greška pri učitavanju: {error}</Text>}
-
-      {documents != null && documents.length === 0 && (
-        <View style={styles.empty}>
-          <Text style={styles.emptyText}>Nemaš sačuvanih dokumenata.</Text>
-          <Pressable style={styles.button} onPress={() => navigation.navigate('ScanDocument')}>
-            <Text style={styles.buttonText}>Skeniraj</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.button, styles.buttonSecondary]}
-            onPress={() => navigation.navigate('ManualEntry')}
-          >
-            <Text style={styles.buttonText}>Unesi ručno</Text>
-          </Pressable>
-        </View>
-      )}
-
-      {documents != null && documents.length > 0 && (
-        <FlatList
-          data={documents}
-          keyExtractor={(d) => d.id}
-          contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => {
-            const { status, daysLeft } = getExpiryStatus(item.data.expiryDate);
-            const badge = STATUS_STYLES[status];
-            return (
-              <Pressable
-                style={styles.row}
-                onPress={() => navigation.navigate('DocumentDetails', { documentId: item.id })}
-              >
-                <View style={styles.rowMain}>
-                  <Text style={styles.rowType}>{DOCUMENT_TYPE_LABELS[item.data.type]}</Text>
-                  <Text style={styles.rowName}>
-                    {item.data.firstName} {item.data.lastName}
-                  </Text>
-                  <Text style={styles.rowDate}>ističe {item.data.expiryDate.slice(0, 10)}</Text>
-                </View>
-                <View style={[styles.badge, { backgroundColor: badge.bg }]}>
-                  <Text style={[styles.badgeText, { color: badge.text }]}>
-                    {badgeText(status, daysLeft)}
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          }}
-        />
-      )}
-
-      <Pressable style={styles.evalLink} onPress={() => navigation.navigate('CryptoTest')}>
-        <Text style={styles.evalLinkText}>🔐 Crypto testovi (evaluacija)</Text>
-      </Pressable>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.surface, paddingTop: 32 },
   header: { paddingHorizontal: 20, marginBottom: 12 },
-  title: { fontSize: 28, fontWeight: '800', marginBottom: 12 },
-  headerActions: { flexDirection: 'row', gap: 8 },
+  title: { fontSize: 28, fontWeight: "800", marginBottom: 12 },
+  headerActions: { flexDirection: "row", gap: 8 },
   headerButton: {
     backgroundColor: theme.colors.primary,
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 14,
   },
-  headerButtonText: { color: theme.colors.textInverse, fontSize: 14, fontWeight: '600' },
+  headerButtonText: {
+    color: theme.colors.textInverse,
+    fontSize: 14,
+    fontWeight: "600",
+  },
   loading: { marginTop: 40 },
-  errorText: { color: theme.colors.danger, paddingHorizontal: 20, marginBottom: 10 },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 10 },
+  errorText: {
+    color: theme.colors.danger,
+    paddingHorizontal: 20,
+    marginBottom: 10,
+  },
+  empty: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+    gap: 10,
+  },
   emptyText: { fontSize: 15, color: theme.colors.textMuted, marginBottom: 10 },
   button: {
     backgroundColor: theme.colors.primary,
     borderRadius: 10,
     paddingVertical: 14,
     paddingHorizontal: 24,
-    alignItems: 'center',
+    alignItems: "center",
     minWidth: 200,
   },
   buttonSecondary: { backgroundColor: theme.colors.secondary },
-  buttonText: { color: theme.colors.textInverse, fontSize: 16, fontWeight: '600' },
+  buttonText: {
+    color: theme.colors.textInverse,
+    fontSize: 16,
+    fontWeight: "600",
+  },
   listContent: { paddingHorizontal: 20, paddingBottom: 20, gap: 10 },
   row: {
     backgroundColor: theme.colors.background,
     borderRadius: 12,
     padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: 10,
   },
   rowMain: { flex: 1 },
-  rowType: { fontSize: 12, fontWeight: '700', color: theme.colors.primary, marginBottom: 2 },
-  rowName: { fontSize: 16, fontWeight: '600', color: theme.colors.text },
+  rowType: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: theme.colors.primary,
+    marginBottom: 2,
+  },
+  rowName: { fontSize: 16, fontWeight: "600", color: theme.colors.text },
   rowDate: { fontSize: 12, color: theme.colors.textMuted, marginTop: 2 },
   badge: { borderRadius: 8, paddingVertical: 6, paddingHorizontal: 10 },
-  badgeText: { fontSize: 12, fontWeight: '700' },
-  evalLink: { padding: 16, alignItems: 'center' },
+  badgeText: { fontSize: 12, fontWeight: "700" },
+  evalLink: { padding: 16, alignItems: "center" },
   evalLinkText: { color: theme.colors.textMuted, fontSize: 12 },
 });
