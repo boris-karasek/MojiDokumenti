@@ -42,8 +42,7 @@ import { saveDocument, getDocument, updateDocument } from '../services/database'
 import { DOCUMENT_TYPE_LABELS, DOCUMENT_TYPES } from '../services/documentLabels';
 import type { DocumentType } from '../types';
 import type { ScreenProps } from '../navigation';
-
-const msg = (e: unknown) => (e instanceof Error ? e.message : String(e));
+import { msg } from '../utils/errors';
 
 const formatDate = (d: Date | null): string =>
   d == null ? 'Izaberi datum' : d.toISOString().slice(0, 10);
